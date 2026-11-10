@@ -472,9 +472,7 @@ fustStampGui.IgnoreGuiInset = true
 fustStampGui.DisplayOrder = 9999998
 local sp = nil
 pcall(function() sp = gethui and gethui() end)
-if not sp then
-pcall(function() sp = game:GetService("CoreGui") end)
-end
+-- 0.49: CoreGui напрямую не трогаем (риск блокировки потока) — сразу PlayerGui ниже
 if not sp then
 pcall(function()
 local lp = game:GetService("Players").LocalPlayer
@@ -523,13 +521,14 @@ loadWidget.Name = "PetuhLoadScreen"
 loadWidget.ResetOnSpawn = false
 loadWidget.DisplayOrder = 999998
 loadWidget.IgnoreGuiInset = true
-pcall(function() loadWidget.Parent = (gethui and gethui()) or game:GetService("CoreGui") end)
+-- 0.49: без прямого CoreGui (блокировка потока) — только gethui, ниже PlayerGui
+pcall(function() loadWidget.Parent = (gethui and gethui()) or nil end)
 if not loadWidget.Parent then
     pcall(function() loadWidget.Parent = game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 3) end)
 end
 local lwPanel = Instance.new("Frame")
-lwPanel.Size = UDim2.new(0, 300, 0, 42) -- 0.49: шире — этапы читаются
-lwPanel.Position = UDim2.new(0.5, -150, 0, 110) -- 0.49: центр сверху, консоль не перекрываем
+lwPanel.Size = UDim2.new(0, 200, 0, 44)
+lwPanel.Position = UDim2.new(1, -212, 0, 12)
 lwPanel.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 lwPanel.BackgroundTransparency = 0.1
 lwPanel.BorderSizePixel = 0
@@ -544,7 +543,7 @@ lwIcon.BackgroundTransparency = 1; lwIcon.Image = "rbxassetid://134242818164054"
 lwIcon.Parent = lwPanel
 local lwText = Instance.new("TextLabel")
 lwText.Size = UDim2.new(1, -44, 1, 0); lwText.Position = UDim2.new(0, 40, 0, 0)
-lwText.BackgroundTransparency = 1; lwText.Font = Enum.Font.GothamBold; lwText.TextSize = 11; lwText.TextWrapped = true -- 0.49
+lwText.BackgroundTransparency = 1; lwText.Font = Enum.Font.GothamBold; lwText.TextSize = 12
 lwText.TextColor3 = Color3.fromRGB(240, 130, 30); lwText.TextXAlignment = Enum.TextXAlignment.Left
 lwText.Text = "ЗАГРУЗКА ЧИТА..."
 lwText.Parent = lwPanel
@@ -709,13 +708,6 @@ getgenv().FUST_T0 = os.time()
 getgenv().FUST_STEP = "старт"
 local function fustStep(text)
 getgenv().FUST_STEP = text
--- 0.49: этап виден НА ЭКРАНЕ (плашка), а не только в консоли —
--- консоль после вылета не прочитать, плашку видно на скрине
-pcall(function()
-if lwText and lwText.Parent then
-lwText.Text = tostring(text)
-end
-end)
 end
 task.spawn(function()
 local deadline = os.time() + 90 -- 0.48: 90 сек, продлевается пока идут элементы
@@ -735,12 +727,6 @@ end
 beat = beat + 1
 if beat % 3 == 0 then
 print("[FUST-WD] жив: шаг=" .. tostring(getgenv().FUST_STEP) .. ", прошло " .. beat .. "с, mem=" .. math.floor(collectgarbage("count")) .. "КБ")
--- 0.49: живость видна НА ПЛАШКЕ, не только в консоли
-pcall(function()
-if lwText and lwText.Parent then
-lwText.Text = tostring(getgenv().FUST_STEP) .. " • жив " .. beat .. "с"
-end
-end)
 end
 end
 local elapsed = os.time() - getgenv().FUST_T0
@@ -760,9 +746,7 @@ banner.IgnoreGuiInset = true
 banner.DisplayOrder = 9999999
 local parent = nil
 pcall(function() parent = gethui and gethui() end)
-if not parent then
-pcall(function() parent = game:GetService("CoreGui") end)
-end
+-- 0.49: без прямого CoreGui — сразу PlayerGui ниже
 if not parent then
 pcall(function()
 local pg = game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -826,7 +810,7 @@ print("[FUST] 2/4: UI-библиотека Neverlose вшита в билд (76 
 -- 0.48: библиотека вшита как функция (компилируется ОДИН раз со скриптом;
 -- строка-источник 1.0 МБ и второй чанк компиляции больше не существуют)
 
--- 0.48: вшита Neverlose UI (60 КБ исходник + патчи P1-P12).
+-- 0.48: вшита Neverlose UI (60 КБ исходник + патчи P1-P13).
 -- Ни одного внешнего запроса: 0 HttpGet / 0 GetObjects / 0 getcustomasset.
 -- Патчи: touch-drag, slider default+touch, colorpicker touch, Multi-dropdown,
 -- Label/Paragraph, объекты элементов для конфигов, красная тема бренда.
@@ -841,7 +825,7 @@ local input = game:GetService("UserInputService")
 local function getRoot()
     local ok, r = pcall(function()
         if type(gethui) == "function" then return gethui() end
-        return game:GetService("CoreGui")
+        return nil
     end)
     if ok and r then return r end
     local ok2, r2 = pcall(function()
@@ -860,9 +844,49 @@ if NL_ROOT then
     end
 end
 
--- 0.48: GetMouse под pcall — на части экзекуторов блокируется до спавна игрока
-local themouse = nil
-pcall(function() themouse = game.Players.LocalPlayer:GetMouse() end)
+-- 0.49 P13: ОБЩИЙ ВВОД ДЛЯ ВСЕХ ЭЛЕМЕНТОВ UI.
+-- БЫЛО (0.48): каждый слайдер/колорпикер/кейбинд вешал СВОИ глобальные
+-- соединения (InputChanged + InputEnded + RenderStepped / InputBegan).
+-- При 40+ элементах это 120+ ВЕЧНЫХ колбэков: каждый тап и каждый кадр
+-- гнал их все. Плюс GetMouse() в конструкторах мог БЛОКИРОВАТЬ поток до
+-- спавна игрока (см. комментарий выше) — итог: FPS 0, игра умирает.
+-- СТАЛО: 4 соединения на всю библиотеку, GetMouse не вызывается ВООБЩЕ.
+local NL_HUB_X, NL_HUB_Y = nil, nil
+local NL_SLIDE_FN = nil -- активный слайдер: обновляется каждый кадр
+local NL_PICK_FN = nil  -- активный колорпикер: обновляется при движении пальца
+local NL_KEY_FNS = {}   -- кейбинды: по одной функции на элемент
+local NL_HUB_UIS = game:GetService("UserInputService")
+NL_HUB_UIS.InputChanged:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseMovement
+    or inp.UserInputType == Enum.UserInputType.Touch then
+        NL_HUB_X = inp.Position.X
+        NL_HUB_Y = inp.Position.Y
+        if NL_PICK_FN then
+            local okP = pcall(NL_PICK_FN, NL_HUB_X, NL_HUB_Y)
+            if not okP then NL_PICK_FN = nil end
+        end
+    end
+end)
+NL_HUB_UIS.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1
+    or inp.UserInputType == Enum.UserInputType.Touch
+    or inp.UserInputType == Enum.UserInputType.MouseMovement then
+        NL_SLIDE_FN = nil
+        NL_PICK_FN = nil
+    end
+end)
+game:GetService("RunService").RenderStepped:Connect(function()
+    if NL_SLIDE_FN then
+        local okS = pcall(NL_SLIDE_FN)
+        if not okS then NL_SLIDE_FN = nil end
+    end
+end)
+NL_HUB_UIS.InputBegan:Connect(function(key, focused)
+    if focused then return end
+    for i = 1, #NL_KEY_FNS do
+        if NL_KEY_FNS[i] then pcall(NL_KEY_FNS[i], key) end
+    end
+end)
 
 local function Notify(tt, tx)
     -- 0.48: SetCore может БЛОКИРОВАТЬ поток до загрузки CoreGui.
@@ -1417,4 +1441,141 @@ function Library:Window(options)
                     togBtnCorner.Name = "togFrameCorner"
                     togBtnCorner.Parent = toggleButton
 
-                    Re
+                    Resize(25)
+                    -- P6: возвращаем объект для конфигов
+                    local self = {}
+                    function self:Set(v, silent)
+                        v = v and true or false
+                        if v == State then return end
+                        State = v
+                        if not silent then options.callback(State) end
+                        TweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            Position = State and UDim2.new(0.74, 0, 0.5, 0) or UDim2.new(0.25, 0, 0.5, 0)
+                        }):Play()
+                        TweenService:Create(toggleLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            TextColor3 = State and Color3.fromRGB(234, 239, 246) or Color3.fromRGB(157, 171, 182)
+                        }):Play()
+                        TweenService:Create(toggleButton, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            BackgroundColor3 = State and Color3.fromRGB(255, 59, 48) or Color3.fromRGB(77, 77, 77)
+                        }):Play()
+                        TweenService:Create(toggleFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            BackgroundColor3 = State and Color3.fromRGB(51, 12, 10) or Color3.fromRGB(4, 4, 11)
+                        }):Play()
+                    end
+                    function self:Get() return State end
+                    self.Value = function() return State end
+                    self.Instance = toggleLabel
+                    return self
+                end
+
+                function elements:Slider(options)
+                    if not options.text or not options.min or not options.max or not options.callback then Notify("Slider", "Missing arguments!") return end
+
+                    local Slider = Instance.new("Frame")
+                    local sliderLabel = Instance.new("TextLabel")
+                    local sliderFrame = Instance.new("TextButton")
+                    local sliderBall = Instance.new("TextButton")
+                    local sliderBallCorner = Instance.new("UICorner")
+                    local sliderTextBox = Instance.new("TextBox")
+                    buttoneffect({frame = sliderLabel, entered = Slider})
+
+                    local Value
+
+                    local UIS = game:GetService("UserInputService")
+
+                    local percentage = 0
+                    local step = 0.01
+                    -- 0.49 P13: позицию пальца/мыши даёт общий хаб (NL_HUB_X)
+
+                    local function snap(number, factor)
+                        if factor == 0 then
+                            return number
+                        else
+                            return math.floor(number/factor+0.5)*factor
+                        end
+                    end
+
+                    -- 0.49 P13: обновление слайдера — одна функция на элемент,
+                    -- крутит общий хаб, пока палец зажат
+                    local function sliderUpdate()
+                        local BtnPos = sliderBall.Position
+                        local MousePos = NL_HUB_X or UIS:GetMouseLocation().X
+                        local FrameSize = sliderFrame.AbsoluteSize.X
+                        local FramePos = sliderFrame.AbsolutePosition.X
+                        local pos = snap((MousePos-FramePos)/FrameSize,step)
+                        percentage = math.clamp(pos,0,0.9)
+
+                        Value = ((((tonumber(options.max) - tonumber(options.min)) / 0.9) * percentage)) + tonumber(options.min)
+                        Value = round(Value, options.float)
+                        Value = math.clamp(Value, options.min, options.max)
+                        sliderTextBox.Text = Value
+                        options.callback(Value)
+                        sliderBall.Position = UDim2.new(percentage,0,BtnPos.Y.Scale, BtnPos.Y.Offset)
+                    end
+
+                    Slider.Name = "Slider"
+                    Slider.Parent = sectionFrame
+                    Slider.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
+                    Slider.BackgroundTransparency = 1.000
+                    Slider.Position = UDim2.new(0.0395348854, 0, 0.947335422, 0)
+                    Slider.Size = UDim2.new(0, 200, 0, 22)
+
+                    sliderLabel.Name = "sliderLabel"
+                    sliderLabel.Parent = Slider
+                    sliderLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
+                    sliderLabel.BackgroundTransparency = 1.000
+                    sliderLabel.Position = UDim2.new(0.2, 0, 0.5, 0)
+                    sliderLabel.Size = UDim2.new(0, 77, 0, 22)
+                    sliderLabel.Font = Enum.Font.Gotham
+                    sliderLabel.Text = " " .. options.text
+                    sliderLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
+                    sliderLabel.TextSize = 14.000
+                    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    sliderLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
+                        if sliderLabel.TextBounds.X > 75 then
+                            sliderLabel.TextScaled = true
+                        else
+                            sliderLabel.TextScaled = false
+                        end
+                    end)
+
+                    sliderFrame.Name = "sliderFrame"
+                    sliderFrame.Parent = sliderLabel
+                    sliderFrame.BackgroundColor3 = Color3.fromRGB(110, 34, 28)
+                    sliderFrame.BorderSizePixel = 0
+                    sliderFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderFrame.Position = UDim2.new(1.6, 0, 0.5, 0)
+                    sliderFrame.Size = UDim2.new(0, 72, 0, 2)
+                    sliderFrame.Text = ""
+                    sliderFrame.AutoButtonColor = false
+                    sliderFrame.MouseButton1Down:Connect(function()
+                        NL_SLIDE_FN = sliderUpdate
+                    end)
+
+                    sliderBall.Name = "sliderBall"
+                    sliderBall.Parent = sliderFrame
+                    sliderBall.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderBall.BackgroundColor3 = Color3.fromRGB(255, 94, 84)
+                    sliderBall.BorderSizePixel = 0
+                    sliderBall.Position = UDim2.new(0, 0, 0.5, 0)
+                    sliderBall.Size = UDim2.new(0, 14, 0, 14)
+                    sliderBall.AutoButtonColor = false
+                    sliderBall.Font = Enum.Font.SourceSans
+                    sliderBall.Text = ""
+                    sliderBall.TextColor3 = Color3.fromRGB(0, 0, 0)
+                    sliderBall.TextSize = 14.000
+                    sliderBall.MouseButton1Down:Connect(function()
+                        NL_SLIDE_FN = sliderUpdate
+                    end)
+
+                    local function setByValue(v, silent)
+                        v = tonumber(v) or options.min
+                        v = math.clamp(v, options.min, options.max)
+                        Value = v
+                        percentage = math.clamp((v - options.min) / ((options.max - options.min) / 0.9), 0, 0.9)
+                        sliderTextBox.Text = tostring(Value)
+                        sliderBall.Position = UDim2.new(percentage, 0, 0.5, 0)
+                        if not silent then options.callback(Value) end
+                    end
+                    -- 0.49 P13: личны
