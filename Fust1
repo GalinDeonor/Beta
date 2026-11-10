@@ -1,5 +1,5 @@
 --[[
-    ПЬЯНЫЙ ПЕТУХ — FUST Survival 0.47 (v18 LiquidGlass)
+    ПЬЯНЫЙ ПЕТУХ — FUST Survival 0.48 (v19 Neverlose)
     Скрипт сделан на основе скрипта VOMAGLA (подход к трассерам
     пуль и ESP взят оттуда, спасибо автору VOMAGLA).
 
@@ -457,11 +457,11 @@
     19. Аимбот: камера-лок, Smooth, предикт, FOV-круг, стены/команда.
     20. GUI в CoreGui, лог запуска [FUST] 1/4...4/4.
 ]]
-print("[FUST] 1/4: запуск скрипта «Пьяный Петух» 0.47 Neverlose UI...")
+print("[FUST] 1/4: запуск скрипта «Пьяный Петух» 0.48 Neverlose UI...")
 -- ============================================================================
--- 0.47: БОЛЬШАЯ ПЛАШКА ВЕРСИИ — видна с первой секунды запуска.
+-- 0.48: БОЛЬШАЯ ПЛАШКА ВЕРСИИ — видна с первой секунды запуска.
 -- ЕСЛИ ЭТОЙ ПЛАШКИ НЕТ НА ЭКРАНЕ — выполняется НЕ этот релиз:
--- на репо старые части или старый лоадер. Скрипт 0.47 не запускался.
+-- на репо старые части или старый лоадер. Скрипт 0.48 не запускался.
 -- ============================================================================
 local fustStampGui = nil
 pcall(function()
@@ -487,13 +487,13 @@ end
 if fustStampGui.Parent then
 local st = Instance.new("TextLabel")
 st.Size = UDim2.new(0, 440, 0, 48)
-st.Position = UDim2.new(0.5, -220, 0, 8)
+st.Position = UDim2.new(0.5, -220, 0, 112)
 st.BackgroundColor3 = Color3.fromRGB(130, 15, 15)
 st.BorderSizePixel = 0
 st.Font = Enum.Font.GothamBold
 st.TextSize = 21
 st.TextColor3 = Color3.fromRGB(255, 225, 225)
-st.Text = "ПЬЯНЫЙ ПЕТУХ 0.47 — ЗАГРУЗКА"
+st.Text = "ПЬЯНЫЙ ПЕТУХ 0.48 — ЗАГРУЗКА"
 st.Parent = fustStampGui
 pcall(function()
 local c = Instance.new("UICorner")
@@ -698,9 +698,9 @@ appendfile(JOURNAL_FILE, stamp .. msg .. "\n")
 end)
 end
 end
-journal("=== ЗАПУСК 0.47 | place " .. tostring(game.PlaceId) .. " | экзекутор: " .. EXECUTOR_NAME .. " | игроков: " .. tostring(#Players:GetPlayers()) .. " ===")
+journal("=== ЗАПУСК 0.48 | place " .. tostring(game.PlaceId) .. " | экзекутор: " .. EXECUTOR_NAME .. " | игроков: " .. tostring(#Players:GetPlayers()) .. " ===")
 -- ============================================================================
--- 0.47: WATCHDOG. Если инициализация не дошла до «4/4» за 30 секунд —
+-- 0.48: WATCHDOG. Если инициализация не дошла до «4/4» за 30 секунд —
 -- показываем красный баннер с ТОЧНЫМ шагом зависания вместо вечного молчания.
 -- Построен на чистом Instance.new — работает даже если библиотека не стартовала.
 -- ============================================================================
@@ -711,12 +711,19 @@ local function fustStep(text)
 getgenv().FUST_STEP = text
 end
 task.spawn(function()
-local deadline = os.time() + 40 -- 0.47: 40 сек на медленные телефоны
+local deadline = os.time() + 90 -- 0.48: 90 сек, продлевается пока идут элементы
 local beat = 0
+local lastElems = -1
 while os.time() < deadline do
 task.wait(1)
 if getgenv().FUST_READY then
 return
+end
+-- 0.48: элементы ещё создаются (вдохи работают) — скрипт ЖИВ, продлеваем
+local curElems = tonumber(getgenv().FUST_ELEMS) or -1
+if curElems ~= lastElems then
+lastElems = curElems
+deadline = os.time() + 90
 end
 beat = beat + 1
 if beat % 3 == 0 then
@@ -774,7 +781,7 @@ t1.Font = Enum.Font.GothamBold
 t1.TextSize = 16
 t1.TextColor3 = Color3.fromRGB(255, 130, 130)
 t1.TextXAlignment = Enum.TextXAlignment.Left
-t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.47 — ЗАВИСЛО (watchdog)"
+t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.48 — ЗАВИСЛО (watchdog)"
 t1.Parent = fr
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 100, 0, 24)
@@ -802,11 +809,11 @@ t2.Text = diag .. "\nСкрин этого окна + консоль — в ча
 t2.Parent = fr
 end)
 end)
-print("[FUST] 2/4: LiquidGlass ВСТРОЕНА в билд (1.0 МБ, качать не нужно). Парсинг...")
--- 0.47: библиотека вшита как функция (компилируется ОДИН раз со скриптом;
+print("[FUST] 2/4: UI-библиотека Neverlose вшита в билд (76 КБ), внешних запросов: 0.")
+-- 0.48: библиотека вшита как функция (компилируется ОДИН раз со скриптом;
 -- строка-источник 1.0 МБ и второй чанк компиляции больше не существуют)
 
--- 0.47: вшита Neverlose UI (60 КБ исходник + патчи P1-P12).
+-- 0.48: вшита Neverlose UI (60 КБ исходник + патчи P1-P12).
 -- Ни одного внешнего запроса: 0 HttpGet / 0 GetObjects / 0 getcustomasset.
 -- Патчи: touch-drag, slider default+touch, colorpicker touch, Multi-dropdown,
 -- Label/Paragraph, объекты элементов для конфигов, красная тема бренда.
@@ -840,14 +847,22 @@ if NL_ROOT then
     end
 end
 
-local themouse = game.Players.LocalPlayer:GetMouse()
+-- 0.48: GetMouse под pcall — на части экзекуторов блокируется до спавна игрока
+local themouse = nil
+pcall(function() themouse = game.Players.LocalPlayer:GetMouse() end)
 
 local function Notify(tt, tx)
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = tt,
-        Text = tx,
-        Duration = 5
-    })
+    -- 0.48: SetCore может БЛОКИРОВАТЬ поток до загрузки CoreGui.
+    -- Уведомление уходит отдельным потоком — загрузка зависнуть на нём не может.
+    task.spawn(function()
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = tt,
+                Text = tx,
+                Duration = 5
+            })
+        end)
+    end)
 end
 
 local function Dragify(frame, parent)
@@ -1568,19 +1583,4 @@ function Library:Window(options)
                     end)
 
                     sliderTextBox.FocusLost:Connect(function(Enter)
-                        TweenService:Create(sliderLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(157, 171, 182)}):Play()
-                        if Enter then
-                            if sliderTextBox.Text ~= nil and sliderTextBox.Text ~= "" then
-                                if tonumber(sliderTextBox.Text) > options.max then
-                                    setByValue(options.max, false)
-                                elseif tonumber(sliderTextBox.Text) < options.min then
-                                    setByValue(options.min, false)
-                                else
-                                    setByValue(tonumber(sliderTextBox.Text), false)
-                                end
-                            end
-                        end
-                    end)
-
-                    Resize(25)
- 
+                        TweenService:Create(sliderLabel, Twe

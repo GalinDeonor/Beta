@@ -1,4 +1,69 @@
- 1, 8 do
+le = visible
+elseif chLines[1] then
+chLines[1].Visible = false
+end
+-- bottom
+if chLines[2] then
+chLines[2].From = Vector2.new(center.X, center.Y + gap)
+chLines[2].To = Vector2.new(center.X, center.Y + gap + len)
+chLines[2].Thickness = th
+chLines[2].Color = CH.Color
+chLines[2].Transparency = 1 - alpha
+chLines[2].Visible = visible
+end
+-- left
+if chLines[3] then
+chLines[3].From = Vector2.new(center.X - gap, center.Y)
+chLines[3].To = Vector2.new(center.X - gap - len, center.Y)
+chLines[3].Thickness = th
+chLines[3].Color = CH.Color
+chLines[3].Transparency = 1 - alpha
+chLines[3].Visible = visible
+end
+-- right
+if chLines[4] then
+chLines[4].From = Vector2.new(center.X + gap, center.Y)
+chLines[4].To = Vector2.new(center.X + gap + len, center.Y)
+chLines[4].Thickness = th
+chLines[4].Color = CH.Color
+chLines[4].Transparency = 1 - alpha
+chLines[4].Visible = visible
+end
+-- точка (размер через DotSize)
+if chDot then
+chDot.Position = center
+chDot.Radius = math.max(1, CH.DotSize or 1)
+chDot.Color = CH.Color
+chDot.Transparency = 1 - alpha
+chDot.Visible = visible and CH.Dot
+end
+-- обводка (8 линий с микро-смещением вокруг основных; толщина через OutlineThickness)
+if CH.Outline and visible then
+local ot = CH.OutlineThickness or 1
+local offs = { {1,0}, {-1,0}, {0,1}, {0,-1} }
+local oi = 1
+for dir = 1, 4 do
+local base = chLines[dir]
+if base and base.Visible then
+for _, off in ipairs(offs) do
+local o = chOutline[oi]
+if o then
+o.From = Vector2.new(base.From.X + off[1] * ot, base.From.Y + off[2] * ot)
+o.To = Vector2.new(base.To.X + off[1] * ot, base.To.Y + off[2] * ot)
+o.Thickness = th + ot * 2
+o.Color = Color3.fromRGB(0, 0, 0)
+o.Transparency = 1 - alpha
+o.Visible = true
+end
+oi = oi + 1
+end
+end
+end
+for i = oi, 8 do
+if chOutline[i] then chOutline[i].Visible = false end
+end
+else
+for i = 1, 8 do
 if chOutline[i] then chOutline[i].Visible = false end
 end
 end
@@ -3365,65 +3430,4 @@ local ox = (i % 2 == 0) and -hx or hx
 local oy = (i % 4 < 2) and -hy or hy
 local oz = (i < 4) and -hz or hz
 local corner = (cf * CFrame.new(ox, oy, oz)).Position
-local depth = (corner - camPos):Dot(look)
-if depth <= 0.1 then
-return nil
-end
-local pt = camera:WorldToViewportPoint(corner)
-if pt.X < minX then minX = pt.X end
-if pt.X > maxX then maxX = pt.X end
-if pt.Y < minY then minY = pt.Y end
-if pt.Y > maxY then maxY = pt.Y end
-end
-return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY)
-end
-function espDistScale(dist, maxDist)
-if not S.ESP.DistanceScale then
-return 1, false
-end
-local limit = math.max(maxDist or 1000, 100)
-local t = math.clamp(dist / limit, 0, 1)
-return 1 - t * 0.55, true
-end
-ESP_VIS_COLOR_WALL = Color3.fromRGB(150, 150, 150)
-ESP_VIS_COLOR_HB = Color3.fromRGB(255, 190, 40)
-espVisCache = {}
-espVisCacheCount = 0
-espVisRayParams = RaycastParams.new()
-espVisRayParams.FilterType = Enum.RaycastFilterType.Exclude
-espVisRayParams.IgnoreWater = true
-function espVisCacheClear()
-table.clear(espVisCache)
-espVisCacheCount = 0
-end
-function espVisPointClear(camPos, char, point)
-if LocalPlayer.Character then
-espVisRayParams.FilterDescendantsInstances = { LocalPlayer.Character, char }
-else
-espVisRayParams.FilterDescendantsInstances = { char }
-end
-return Workspace:Raycast(camPos, point - camPos, espVisRayParams) == nil
-end
-function espVisState(char, root, camPos, now)
-local hit = espVisCache[char]
-if hit and now - hit.at < 0.2 then
-return hit.state
-end
-if espVisCacheCount > 60 then
-table.clear(espVisCache)
-espVisCacheCount = 0
-end
-local state = "vis"
-local head = char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso")
-local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
-local bodySeen = false
-if head and espVisPointClear(camPos, char, head.Position) then
-bodySeen = true
-end
-if not bodySeen and torso and espVisPointClear(camPos, char, torso.Position) then
-bodySeen = true
-end
-if not bodySeen then
-if S.ESP.VisHitbox and root then
-local hbSeen = false
-local half = root.Size * 0.5
+local depth = (corner - camPos):Dot(lo

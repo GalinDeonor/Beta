@@ -1,4 +1,19 @@
-                   -- P6: объект слайдера
+enInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(157, 171, 182)}):Play()
+                        if Enter then
+                            if sliderTextBox.Text ~= nil and sliderTextBox.Text ~= "" then
+                                if tonumber(sliderTextBox.Text) > options.max then
+                                    setByValue(options.max, false)
+                                elseif tonumber(sliderTextBox.Text) < options.min then
+                                    setByValue(options.min, false)
+                                else
+                                    setByValue(tonumber(sliderTextBox.Text), false)
+                                end
+                            end
+                        end
+                    end)
+
+                    Resize(25)
+                    -- P6: объект слайдера
                     local self = {}
                     function self:Set(v, silent) setByValue(v, silent) end
                     function self:Get() return Value end
@@ -793,7 +808,7 @@ end)
 
 Library = (function()
 -- ============================================================================
--- 0.47: ЯДРО UI = Neverlose UI (вшита выше как FUST_LG_FN, 76 КБ).
+-- 0.48: ЯДРО UI = Neverlose UI (вшита выше как FUST_LG_FN, 76 КБ).
 -- Полностью заменяет LiquidGlass (1.0 МБ -> 76 КБ, -92%).
 -- Причины: LiquidGlass три версии подряд вешала исполнителя после плашки;
 -- Neverlose не содержит ни одного блокирующего вызова.
@@ -839,7 +854,7 @@ MathClamp = math.clamp
 
 local Library = {}
 Library.LG = LG
-Library.Version = "0.47-Neverlose"
+Library.Version = "0.48-Neverlose"
 Library.MenuKeybind = "RightControl"
 Library.Flags = {}
 Library.SetFlags = {}
@@ -1247,7 +1262,7 @@ SectionWrapper.__index = SectionWrapper
 local function newSection(nlSec)
         local self = setmetatable({}, SectionWrapper)
         self.NLSection = nlSec
-        -- 0.47 UPGRADE: раньше (LiquidGlass) Items["Content"].Instance был заглушкой и
+        -- 0.48 UPGRADE: раньше (LiquidGlass) Items["Content"].Instance был заглушкой и
         -- вайтлист-панель с cfgStatus были НЕВИДИМЫ. Теперь отдаём реальный фрейм секции
         -- Neverlose — кастомный UI (wlPanel, cfgStatus) реально отображается в секции.
         self.Items = setmetatable({}, {
@@ -1265,40 +1280,69 @@ local function newSection(nlSec)
         return self
 end
 
+-- 0.48: ДЫХАНИЕ ПРИ МАССОВОЙ СБОРКЕ UI. Каждые 8 элементов отдаём поток
+-- на кадр — инициализация больше не замораживает слабые телефоны целиком.
+local NL_ELEM_N = 0
+local function nlBreath()
+        NL_ELEM_N = NL_ELEM_N + 1
+        getgenv().FUST_ELEMS = NL_ELEM_N
+        if NL_ELEM_N % 8 == 0 then
+                task.wait()
+        end
+end
+
 function SectionWrapper:Toggle(d)
-        return makeToggle(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeToggle(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Slider(d)
-        return makeSlider(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeSlider(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Dropdown(d)
-        return makeDropdown(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeDropdown(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Keybind(d)
-        return makeKeybind(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeKeybind(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Colorpicker(d)
-        return makeColorpicker(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeColorpicker(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Button(d)
-        return makeButton(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeButton(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Label(t)
-        return makeLabel(self.NLSection, t)
+        local r = makeLabel(self.NLSection, t)
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Textbox(d)
-        return makeTextbox(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        local r = makeTextbox(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:Paragraph(d)
-        return makeParagraph(self.NLSection, d)
+        local r = makeParagraph(self.NLSection, d)
+        nlBreath()
+        return r
 end
 
 function SectionWrapper:SetTitle(t)
@@ -1312,7 +1356,7 @@ function SectionWrapper:SetVisible(b)
         end)
 end
 
--- 0.47: Items["Content"] реализован per-instance в newSection (реальный фрейм секции)
+-- 0.48: Items["Content"] реализован per-instance в newSection (реальный фрейм секции)
 
 -- ================= окно =================
 local function newWindow(nlWin)
@@ -1699,6 +1743,7 @@ reparent(Library.UnusedHolder)
 end)
 print("[FUST] 3/4: Neverlose UI готов, создаю окно...")
 fustStep("3a: создание окна")
+task.wait() -- 0.48: вдох перед сборкой окна
 -- 0.39v6: ИКОНКА ПЕТУХА — используем Roblox asset ID напрямую.
 -- getcustomasset убран — он детектится анти-читом ("Exploit detected;
 -- getcustomasset"). rbxassetid работает везде и не палится.
@@ -1706,7 +1751,7 @@ PETUH_ICON_ASSET = "rbxassetid://134242818164054"
 print("[FUST] Иконка петуха: rbxassetid (безопасно)")
 
 -- 0.40: ОКНО ЧЕРЕЗ LiquidGlass (красный акцент задаётся в адаптере)
-print("[FUST] 3a0: конструктор окна LiquidGlass...")
+print("[FUST] 3a0: конструктор окна Neverlose...")
 fustStep("3a0: конструктор окна")
 Window = Library:Window({
 Name = "Пьяный Петух",
@@ -1834,6 +1879,7 @@ journal("ОШИБКА UI '" .. stepName .. "': " .. tostring(err))
 end)
 table.insert(UI_ERRORS, stepName .. ": " .. tostring(err))
 end
+task.wait() -- 0.48: вдох после UI-блока — телефон не замерзает
 end
 ICON_SETTINGS = "rbxassetid://80758916183665"
 ICON_COMBAT = "rbxassetid://87563802520297"
@@ -1973,6 +2019,7 @@ end)
 -- 0.39v16: yield убран — в v13 без него работало
 print("[FUST] 3/4: интерфейс создан, окно должно быть на экране")
 fustStep("3b: фичи и вкладки")
+task.wait() -- 0.48: вдох после сборки UI
 S = {
 ESP = {
 Enabled = false,
@@ -2025,56 +2072,4 @@ Size = 11,
 BgTransparency = 0.35, 
 TextTransparency = 0, 
 Corner = "Лево-низ", 
-ShowTPS = true, 
-ShowBg = true, 
--- 0.39: новые поля
-ColorBg = Color3.fromRGB(12, 12, 16),
-ColorText = Color3.fromRGB(235, 235, 240),
-ColorStroke = Color3.fromRGB(255, 170, 40),
-ShowAdmin = true, 
-Position = nil, -- {X=0.0..1.0, Y=0.0..1.0} — сохранённая позиция drag
-},
-Loot = {
-Enabled = false,
-Owner = true, 
-Slots = true, 
-Distance = true,
-Box = true,
-Chams = true, 
-MaxDistance = 1500,
-DebugLog = false, 
-},
-LootC = {
-Enabled = false,
-Name = true, 
-Distance = true,
-Box = true,
-MaxDistance = 800,
-Chams = false, 
-},
-}
-LOOT_COLOR = Color3.fromRGB(255, 70, 255)
-LOOTC_COLOR = Color3.fromRGB(255, 210, 0)
-CollectionService = game:GetService("CollectionService")
-NPC_COLOR = Color3.fromRGB(255, 145, 0) 
-NPC_CAT_COLORS = {
-Guard = Color3.fromRGB(255, 145, 0), 
-Peaceful = Color3.fromRGB(80, 255, 140), 
-Animal = Color3.fromRGB(255, 80, 95), 
-Sleeper = Color3.fromRGB(80, 190, 255), 
-}
-NPC_ANIMAL_TAGS = { "FustAnimal", "FustDino", "Animal" }
-NPC_NPC_TAGS = { "FustNpc", "Npc", "NPC" }
-SLEEPER_TAGS = { "FustSleeper", "Sleeper", "Sleeping", "FustSleeping", "OfflineBody", "PlayerBody", "FustBody" }
-SLEEPER_ATTRS = { "Sleeping", "IsSleeping", "Sleep", "Sleeper", "IsSleeper", "Offline", "IsOffline" }
-ANIMAL_PATTERNS = { "едвед", "олк", "лен", "абан", "bear", "wolf", "deer", "boar", "hog" }
-GUARD_PATTERNS = { "хранник", "храна", "вард", "guard", "андит", "ародер", "ейдер" }
-SLEEPER_PATTERNS = { "sleeper", "пящ" }
-WEAPON_PATTERNS = {
-"втомат", "интовк", "интор", "истолет", "робовик", "ужь", "арабин",
-"найперск", "улемет", "улемёт", "ранат", "ружи", "к-47",
-"меч", "сабл", "катан",
-"rifle", "pistol", "shotgun", "smg", "mp5", "m4a", "akm", "ak-47", "ak74",
-}
-npcCategoryCache = {} 
-npcHorizontalSi
+Show

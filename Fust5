@@ -1,3 +1,65 @@
+ok)
+if depth <= 0.1 then
+return nil
+end
+local pt = camera:WorldToViewportPoint(corner)
+if pt.X < minX then minX = pt.X end
+if pt.X > maxX then maxX = pt.X end
+if pt.Y < minY then minY = pt.Y end
+if pt.Y > maxY then maxY = pt.Y end
+end
+return Vector2.new(minX, minY), Vector2.new(maxX - minX, maxY - minY)
+end
+function espDistScale(dist, maxDist)
+if not S.ESP.DistanceScale then
+return 1, false
+end
+local limit = math.max(maxDist or 1000, 100)
+local t = math.clamp(dist / limit, 0, 1)
+return 1 - t * 0.55, true
+end
+ESP_VIS_COLOR_WALL = Color3.fromRGB(150, 150, 150)
+ESP_VIS_COLOR_HB = Color3.fromRGB(255, 190, 40)
+espVisCache = {}
+espVisCacheCount = 0
+espVisRayParams = RaycastParams.new()
+espVisRayParams.FilterType = Enum.RaycastFilterType.Exclude
+espVisRayParams.IgnoreWater = true
+function espVisCacheClear()
+table.clear(espVisCache)
+espVisCacheCount = 0
+end
+function espVisPointClear(camPos, char, point)
+if LocalPlayer.Character then
+espVisRayParams.FilterDescendantsInstances = { LocalPlayer.Character, char }
+else
+espVisRayParams.FilterDescendantsInstances = { char }
+end
+return Workspace:Raycast(camPos, point - camPos, espVisRayParams) == nil
+end
+function espVisState(char, root, camPos, now)
+local hit = espVisCache[char]
+if hit and now - hit.at < 0.2 then
+return hit.state
+end
+if espVisCacheCount > 60 then
+table.clear(espVisCache)
+espVisCacheCount = 0
+end
+local state = "vis"
+local head = char:FindFirstChild("Head") or char:FindFirstChild("UpperTorso")
+local torso = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+local bodySeen = false
+if head and espVisPointClear(camPos, char, head.Position) then
+bodySeen = true
+end
+if not bodySeen and torso and espVisPointClear(camPos, char, torso.Position) then
+bodySeen = true
+end
+if not bodySeen then
+if S.ESP.VisHitbox and root then
+local hbSeen = false
+local half = root.Size * 0.5
 local pts = {
 root.Position,
 root.Position + Vector3.new(0, half.Y * 0.8, 0),
@@ -1159,6 +1221,26 @@ fustStep("4/4: финал")
 print("[FUST] 4/4: всё активно. Меню: тап по кнопке-петуху, на ПК — RightControl.")
 getgenv().FUST_READY = true
 fustStampDestroy()
+-- 0.48: убираем плашку лоадера v4 (на Delta фоновые потоки лоадера убиваются,
+-- сам он свою плашку может не успеть снять — снимаем отсюда)
+pcall(function()
+        local roots = {}
+        pcall(function() if type(gethui) == "function" then table.insert(roots, gethui()) end end)
+        pcall(function() table.insert(roots, game:GetService("CoreGui")) end)
+        pcall(function()
+                local lp = game:GetService("Players").LocalPlayer
+                local pg = lp and lp:FindFirstChildOfClass("PlayerGui")
+                if pg then table.insert(roots, pg) end
+        end)
+        for _, root in ipairs(roots) do
+                for _, g in ipairs(root:GetChildren()) do
+                        if g.Name == "FUST_Loader" or g.Name == "FUST_Stamp"
+                                or g.Name == "PetuhLoadScreen" then
+                                g:Destroy()
+                        end
+                end
+        end
+end)
 end)
 -- 0.39v15: скрываем виджет загрузки при успехе
 pcall(function() loadWidget:Destroy() end)
@@ -1233,7 +1315,7 @@ t1.Font = Enum.Font.GothamBold
 t1.TextSize = 17
 t1.TextColor3 = Color3.fromRGB(255, 130, 130)
 t1.TextXAlignment = Enum.TextXAlignment.Left
-t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.47 — ОШИБКА ЗАПУСКА"
+t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.48 — ОШИБКА ЗАПУСКА"
 t1.Parent = fr
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 100, 0, 26)

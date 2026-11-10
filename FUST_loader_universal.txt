@@ -1,23 +1,92 @@
--- «Пьяный Петух» — универсальный лоадер v3 (Xeno + Delta)
--- v3: КАЖДЫЙ запрос с гонкой по времени (10 сек) + 3 попытки на файл —
--- висеть бесконечно больше не может. Проверка версии манифеста (0.47):
--- если на репо старый манифест — лоадер СРАЗУ скажет об этом текстом.
--- Проверка целостности: длина + md5. Прогресс по каждой части.
--- МЕНЯТЬ ВНУТРИ НИЧЕГО НЕ НУЖНО — версия проверяется автоматически.
+-- «Пьяный Петух» — универсальный лоадер v4 (Solara / Xeno / Delta / мобильные)
+-- ЧТО НОВОГО В v4 (почему больше не «зависает молча»):
+--   1. ВЕСЬ прогресс НА ЭКРАНЕ — красная плашка сверху: что качается,
+--      какая попытка, сколько байт. Консоль читать НЕ обязательно.
+--   2. Гонка запросов починена: быстрый провал больше не маскируется
+--      под 10-секундное ожидание (флаг done вместо сравнения с nil).
+--   3. Лоадер НЕ ОТКАЗЫВАЕТСЯ от новой версии репо: увидел 0.49 на репо —
+--      скачает и запустит 0.49. (Старые лоадеры 0.46/0.47 с новым репо
+--      НЕ работают — обнови лоадер!)
+--   4. Ошибки компиляции/запуска — тоже на экране, с текстом ошибки.
 
-local EXPECTED_VER = "0.47"
+local LOADER_VER = "0.48"
 local M1 = "https://raw.githubusercontent.com/GalinDeonor/Beta/main/"
-local M2 = "https://raw.githubusercontent.com/GalinDeonor/Beta/main/" -- резерв, поставь свой
-local H  = game:GetService("HttpService")
+local H = game:GetService("HttpService")
 
--- запрос с гонкой по времени: висящий HttpGet больше не блокирует всё
+-- ==== экран загрузчика ====
+local LGui, LLbl, LSub = nil, nil, nil
+pcall(function()
+    LGui = Instance.new("ScreenGui")
+    LGui.Name = "FUST_Loader"
+    LGui.ResetOnSpawn = false
+    LGui.IgnoreGuiInset = true
+    LGui.DisplayOrder = 9999990
+    local parent = nil
+    pcall(function() if type(gethui) == "function" then parent = gethui() end end)
+    if not parent then pcall(function() parent = game:GetService("CoreGui") end) end
+    if not parent then
+        pcall(function()
+            local lp = game:GetService("Players").LocalPlayer
+            parent = lp and lp:FindFirstChildOfClass("PlayerGui")
+        end)
+    end
+    if parent then LGui.Parent = parent end
+    local fr = Instance.new("Frame")
+    fr.Size = UDim2.new(0, 480, 0, 96)
+    fr.Position = UDim2.new(0.5, -240, 0, 8)
+    fr.BackgroundColor3 = Color3.fromRGB(22, 4, 6)
+    fr.BorderSizePixel = 0
+    fr.Parent = LGui
+    pcall(function()
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 10); c.Parent = fr
+        local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(200, 45, 45); s.Thickness = 1.5; s.Parent = fr
+    end)
+    LLbl = Instance.new("TextLabel")
+    LLbl.Size = UDim2.new(1, -20, 0, 30)
+    LLbl.Position = UDim2.new(0, 10, 0, 8)
+    LLbl.BackgroundTransparency = 1
+    LLbl.Font = Enum.Font.GothamBold
+    LLbl.TextSize = 18
+    LLbl.TextColor3 = Color3.fromRGB(255, 120, 120)
+    LLbl.Text = "ПЬЯНЫЙ ПЕТУХ — ЗАГРУЗЧИК " .. LOADER_VER
+    LLbl.Parent = fr
+    LSub = Instance.new("TextLabel")
+    LSub.Size = UDim2.new(1, -20, 0, 46)
+    LSub.Position = UDim2.new(0, 10, 0, 44)
+    LSub.BackgroundTransparency = 1
+    LSub.Font = Enum.Font.Gotham
+    LSub.TextSize = 13
+    LSub.TextColor3 = Color3.fromRGB(255, 222, 222)
+    LSub.TextWrapped = true
+    LSub.TextXAlignment = Enum.TextXAlignment.Left
+    LSub.TextYAlignment = Enum.TextYAlignment.Top
+    LSub.Text = "инициализация..."
+    LSub.Parent = fr
+end)
+
+local function stat(t)
+    print("[ПП] " .. t)
+    pcall(function() LSub.Text = t end)
+end
+
+local function fail(t)
+    warn("[ПП] " .. t)
+    pcall(function()
+        LLbl.Text = "ОШИБКА ЗАГРУЗКИ — скрин этого окна в чат"
+        LLbl.TextColor3 = Color3.fromRGB(255, 80, 80)
+        LSub.Text = t
+    end)
+end
+
+-- ==== запрос с гонкой: провал виден сразу, висяк обрезан 8 сек ====
 local function race(fn, sec)
-    local result = nil
+    local done, result = false, nil
     task.spawn(function()
         result = fn()
+        done = true
     end)
-    local t0 = os.time()
-    while result == nil and os.time() - t0 < (sec or 10) do
+    local t0 = os.clock()
+    while not done and os.clock() - t0 < (sec or 8) do
         task.wait(0.1)
     end
     return result
@@ -32,7 +101,7 @@ end
 local function tryReq(u)
     local f = request or http_request or (syn and syn.request)
     if not f then return nil end
-    local ok, r = pcall(f, {Url = u, Method = "GET"})
+    local ok, r = pcall(f, { Url = u, Method = "GET" })
     if ok and type(r) == "table" then
         local body = r.Body or r.body
         if type(body) == "string" and #body > 0 then return body end
@@ -40,62 +109,54 @@ local function tryReq(u)
     return nil
 end
 
--- качаем URL с таймаутом и 3 попытками (Http -> request -> Http ...)
-local function fetch(u, attempts)
-    attempts = attempts or 3
-    for i = 1, attempts do
-        local body = race(function() return tryHttp(u) end, 10)
+local function fetch(u, tries)
+    tries = tries or 3
+    for i = 1, tries do
+        local body = race(function() return tryHttp(u) end, 8)
         if body then return body end
-        body = race(function() return tryReq(u) end, 10)
+        body = race(function() return tryReq(u) end, 8)
         if body then return body end
-        warn("[ПП] Попытка " .. i .. "/" .. attempts .. " не удалась, повторяю...")
+        stat("попытка " .. i .. "/" .. tries .. " не прошла, повторяю...")
         task.wait(0.4)
     end
     return nil
 end
 
--- 1. manifest.json
+-- ==== 1. манифест ====
+stat("качаю manifest.json...")
 local mj = fetch(M1 .. "manifest.json", 3)
 if not mj or #mj < 10 then
-    return warn("[ПП] manifest.json не скачался. Проверь интернет/репозиторий.")
+    return fail("manifest.json не скачался. Проверь интернет/репозиторий.")
 end
-
 local okM, m = pcall(H.JSONDecode, H, mj)
 if not okM or type(m) ~= "table" or not m.parts then
-    return warn("[ПП] manifest.json битый: " .. tostring(m))
+    return fail("manifest.json битый: " .. tostring(m))
+end
+stat("репо: версия " .. tostring(m.ver) .. ", частей: " .. #m.parts)
+if tostring(m.ver) ~= LOADER_VER then
+    stat("ВНИМАНИЕ: лоадер " .. LOADER_VER .. ", на репо " .. tostring(m.ver)
+        .. ". Продолжаю с версией репо (v4 не блокирует).")
+    task.wait(1.5)
 end
 
-if tostring(m.ver) ~= EXPECTED_VER then
-    return warn("[ПП] НА РЕПО ВЕРСИЯ " .. tostring(m.ver) .. ", А НУЖНА " .. EXPECTED_VER ..
-        ". Ты не заменил manifest.json (и/или части) на новый релиз. Если только что заливал — подожди 5 минут (кэш GitHub) и запусти ещё раз.")
-end
-
-print("[ПП] Версия на репо: " .. tostring(m.ver) .. " | частей: " .. #m.parts)
-
--- 2. Качаем части
+-- ==== 2. части ====
 local src = ""
 for i = 1, #m.parts do
-    local u = M1 .. m.parts[i]
-    if M2 ~= M1 then
-        -- резервное зеркало подставится внутри fetch через fallback ниже
-    end
-    local prt = fetch(u, 3)
+    stat("качаю часть " .. i .. "/" .. #m.parts .. ": " .. tostring(m.parts[i]) .. "...")
+    local prt = fetch(M1 .. m.parts[i], 3)
     local want = m.sizes and m.sizes[i] or 0
     if not prt or #prt < want then
-        return warn(string.format(
-            "[ПП] Часть %d (%s) битая: %d байт, нужно %d. Перезалей репозиторий.",
-            i, m.parts[i], prt and #prt or 0, want))
+        return fail(string.format("часть %d (%s) битая: %d байт, нужно %d. Перезалей репо.",
+            i, tostring(m.parts[i]), prt and #prt or 0, want))
     end
     src = src .. prt
-    print(string.format("[ПП %s] %d/%d: %s (%d байт) OK", m.ver, i, #m.parts, m.parts[i], #prt))
+    stat(string.format("часть %d/%d: %d байт OK", i, #m.parts, #prt))
 end
+stat("все части скачаны (" .. #src .. " байт), проверяю целостность...")
 
-print("[ПП] Все " .. #m.parts .. " частей скачаны (" .. #src .. " байт). Проверяю целостность...")
-
--- 3. Целостность: длина + md5
+-- ==== 3. целостность ====
 if m.total and #src ~= m.total then
-    return warn(string.format(
-        "[ПП] Сумма %d != %d — на репо СМЕШАНЫ части разных версий. Залей новый релиз ЦЕЛИКОМ (все части + manifest.json).",
+    return fail(string.format("сумма %d != %d — на репо смешаны части разных версий. Залей релиз ЦЕЛИКОМ.",
         #src, m.total))
 end
 if m.md5 then
@@ -103,22 +164,26 @@ if m.md5 then
         return (crypt and crypt.hash) and crypt.hash(src, "md5") or nil
     end)
     if okH and type(h) == "string" and #h > 0 and h ~= m.md5 then
-        return warn("[ПП] MD5 не совпал — на репо старые/чужие части. Залей новый релиз ЦЕЛИКОМ, потом rejoin.")
+        return fail("MD5 не сошёлся — на репо старые/чужие части. Залей релиз ЦЕЛИКОМ.")
     end
 end
-print("[ПП] Целостность OK. Запускаю «Пьяный Петух»...")
 
--- 4. Компилируем и запускаем
+-- ==== 4. компиляция и запуск ====
+stat("компилирую скрипт (" .. #src .. " байт)...")
+task.wait()
 local fn, err = (loadstring or load)(src, "=Fust")
 if not fn then
-    return warn("[ПП] Компиляция: " .. tostring(err))
+    return fail("компиляция: " .. tostring(err))
 end
-src = "" -- 0.47: освобождаем память перед запуском
+src = ""
 pcall(collectgarbage)
+stat("запускаю «Пьяный Петух» " .. tostring(m.ver) .. "...")
+task.wait()
 local ok, rerr = pcall(fn)
 if not ok then
-    warn("[ПП] Выполнение: " .. tostring(rerr))
-    warn("[ПП] Скинь скрин консоли — там будет [FUST] с местом падения.")
-else
-    print("[ПП] Готово. Меню — по кнопке-петуху / RightControl.")
+    return fail("выполнение: " .. tostring(rerr))
 end
+stat("запущено! Дальше пишет сам скрипт (плашка ниже). Меню: кнопка-петух / RightControl.")
+task.delay(8, function()
+    pcall(function() LGui:Destroy() end)
+end)
