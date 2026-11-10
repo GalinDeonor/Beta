@@ -9,7 +9,7 @@
 --      НЕ работают — обнови лоадер!)
 --   4. Ошибки компиляции/запуска — тоже на экране, с текстом ошибки.
 
-local LOADER_VER = "0.48"
+local LOADER_VER = "0.49"
 local M1 = "https://raw.githubusercontent.com/GalinDeonor/Beta/main/"
 local H = game:GetService("HttpService")
 

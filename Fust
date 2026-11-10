@@ -1,5 +1,5 @@
 --[[
-    ПЬЯНЫЙ ПЕТУХ — FUST Survival 0.48 (v19 Neverlose)
+    ПЬЯНЫЙ ПЕТУХ — FUST Survival 0.49 (v20 Neverlose)
     Скрипт сделан на основе скрипта VOMAGLA (подход к трассерам
     пуль и ESP взят оттуда, спасибо автору VOMAGLA).
 
@@ -457,7 +457,7 @@
     19. Аимбот: камера-лок, Smooth, предикт, FOV-круг, стены/команда.
     20. GUI в CoreGui, лог запуска [FUST] 1/4...4/4.
 ]]
-print("[FUST] 1/4: запуск скрипта «Пьяный Петух» 0.48 Neverlose UI...")
+print("[FUST] 1/4: запуск скрипта «Пьяный Петух» 0.49 Neverlose UI...")
 -- ============================================================================
 -- 0.48: БОЛЬШАЯ ПЛАШКА ВЕРСИИ — видна с первой секунды запуска.
 -- ЕСЛИ ЭТОЙ ПЛАШКИ НЕТ НА ЭКРАНЕ — выполняется НЕ этот релиз:
@@ -493,7 +493,7 @@ st.BorderSizePixel = 0
 st.Font = Enum.Font.GothamBold
 st.TextSize = 21
 st.TextColor3 = Color3.fromRGB(255, 225, 225)
-st.Text = "ПЬЯНЫЙ ПЕТУХ 0.48 — ЗАГРУЗКА"
+st.Text = "ПЬЯНЫЙ ПЕТУХ 0.49 — ЗАГРУЗКА"
 st.Parent = fustStampGui
 pcall(function()
 local c = Instance.new("UICorner")
@@ -528,8 +528,8 @@ if not loadWidget.Parent then
     pcall(function() loadWidget.Parent = game:GetService("Players").LocalPlayer and game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui", 3) end)
 end
 local lwPanel = Instance.new("Frame")
-lwPanel.Size = UDim2.new(0, 200, 0, 44)
-lwPanel.Position = UDim2.new(1, -212, 0, 12)
+lwPanel.Size = UDim2.new(0, 300, 0, 42) -- 0.49: шире — этапы читаются
+lwPanel.Position = UDim2.new(0.5, -150, 0, 110) -- 0.49: центр сверху, консоль не перекрываем
 lwPanel.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
 lwPanel.BackgroundTransparency = 0.1
 lwPanel.BorderSizePixel = 0
@@ -544,7 +544,7 @@ lwIcon.BackgroundTransparency = 1; lwIcon.Image = "rbxassetid://134242818164054"
 lwIcon.Parent = lwPanel
 local lwText = Instance.new("TextLabel")
 lwText.Size = UDim2.new(1, -44, 1, 0); lwText.Position = UDim2.new(0, 40, 0, 0)
-lwText.BackgroundTransparency = 1; lwText.Font = Enum.Font.GothamBold; lwText.TextSize = 12
+lwText.BackgroundTransparency = 1; lwText.Font = Enum.Font.GothamBold; lwText.TextSize = 11; lwText.TextWrapped = true -- 0.49
 lwText.TextColor3 = Color3.fromRGB(240, 130, 30); lwText.TextXAlignment = Enum.TextXAlignment.Left
 lwText.Text = "ЗАГРУЗКА ЧИТА..."
 lwText.Parent = lwPanel
@@ -698,7 +698,7 @@ appendfile(JOURNAL_FILE, stamp .. msg .. "\n")
 end)
 end
 end
-journal("=== ЗАПУСК 0.48 | place " .. tostring(game.PlaceId) .. " | экзекутор: " .. EXECUTOR_NAME .. " | игроков: " .. tostring(#Players:GetPlayers()) .. " ===")
+journal("=== ЗАПУСК 0.49 | place " .. tostring(game.PlaceId) .. " | экзекутор: " .. EXECUTOR_NAME .. " | игроков: " .. tostring(#Players:GetPlayers()) .. " ===")
 -- ============================================================================
 -- 0.48: WATCHDOG. Если инициализация не дошла до «4/4» за 30 секунд —
 -- показываем красный баннер с ТОЧНЫМ шагом зависания вместо вечного молчания.
@@ -709,6 +709,13 @@ getgenv().FUST_T0 = os.time()
 getgenv().FUST_STEP = "старт"
 local function fustStep(text)
 getgenv().FUST_STEP = text
+-- 0.49: этап виден НА ЭКРАНЕ (плашка), а не только в консоли —
+-- консоль после вылета не прочитать, плашку видно на скрине
+pcall(function()
+if lwText and lwText.Parent then
+lwText.Text = tostring(text)
+end
+end)
 end
 task.spawn(function()
 local deadline = os.time() + 90 -- 0.48: 90 сек, продлевается пока идут элементы
@@ -728,6 +735,12 @@ end
 beat = beat + 1
 if beat % 3 == 0 then
 print("[FUST-WD] жив: шаг=" .. tostring(getgenv().FUST_STEP) .. ", прошло " .. beat .. "с, mem=" .. math.floor(collectgarbage("count")) .. "КБ")
+-- 0.49: живость видна НА ПЛАШКЕ, не только в консоли
+pcall(function()
+if lwText and lwText.Parent then
+lwText.Text = tostring(getgenv().FUST_STEP) .. " • жив " .. beat .. "с"
+end
+end)
 end
 end
 local elapsed = os.time() - getgenv().FUST_T0
@@ -781,7 +794,7 @@ t1.Font = Enum.Font.GothamBold
 t1.TextSize = 16
 t1.TextColor3 = Color3.fromRGB(255, 130, 130)
 t1.TextXAlignment = Enum.TextXAlignment.Left
-t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.48 — ЗАВИСЛО (watchdog)"
+t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.49 — ЗАВИСЛО (watchdog)"
 t1.Parent = fr
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 100, 0, 24)
@@ -2439,7 +2452,7 @@ MathClamp = math.clamp
 
 local Library = {}
 Library.LG = LG
-Library.Version = "0.48-Neverlose"
+Library.Version = "0.49-Neverlose"
 Library.MenuKeybind = "RightControl"
 Library.Flags = {}
 Library.SetFlags = {}
@@ -3326,6 +3339,7 @@ end
 reparent(Library.Holder)
 reparent(Library.UnusedHolder)
 end)
+fustStep("3a: создаю окно")
 print("[FUST] 3/4: Neverlose UI готов, создаю окно...")
 fustStep("3a: создание окна")
 task.wait() -- 0.48: вдох перед сборкой окна
@@ -3585,6 +3599,8 @@ if key then FreeCamKeys.Fast = key; FC_KEY_FAST = key end
 end)
 end
 })
+fustStep("3c: вкладка Аимбот")
+task.wait() -- 0.49: вдох+метка
 uiStep("Вкладка Аимбот", function()
 Window:Group("Бой")
 AimPage = Window:Page({ Name = "Аимбот", Icon = ICON_COMBAT })
@@ -3592,6 +3608,8 @@ AimSection = AimPage:Section({ Name = "Аимбот", Tab = "Аимбот", Side
 HitboxSection = AimPage:Section({ Name = "Хитбокс", Tab = "Аимбот", Side = 2 })
 TargetSection = AimPage:Section({ Name = "Цель", Tab = "Аимбот", Side = 2 })
 end)
+fustStep("3d: ESP/Визуалы/Лут")
+task.wait() -- 0.49: вдох+метка
 uiStep("Вкладки ESP/Визуалы/Лут", function()
 Window:Group("Визуал")
 EspPage = Window:Page({ Name = "ESP", Icon = ICON_VISUALS })
@@ -3602,6 +3620,8 @@ TracerSection = EspPage:Section({ Name = "Трассеры пуль", Tab = "В�
 LootSection = EspPage:Section({ Name = "Мешки с добычей", Tab = "Лут", Side = 1 })
 end)
 -- 0.39v16: yield убран — в v13 без него работало
+fustStep("3b: окно собрано")
+task.wait() -- 0.49: вдох+метка
 print("[FUST] 3/4: интерфейс создан, окно должно быть на экране")
 fustStep("3b: фичи и вкладки")
 task.wait() -- 0.48: вдох после сборки UI
@@ -4457,7 +4477,8 @@ uiAccum = uiAccum + dt
 if uiAccum >= 0.35 then
 uiAccum = 0
 if hudLineFPS then
-hudLineFPS.Text = "FPS " .. tostring(fpsValue)
+-- 0.49: до первого замера показываем тире, а не ложный 0
+hudLineFPS.Text = (fpsValue and fpsValue > 0) and ("FPS " .. tostring(fpsValue)) or "FPS —"
 end
 if hudLinePing then
 local okP, ping = pcall(function()
@@ -4499,6 +4520,7 @@ end
 end
 end))
 end
+fustStep("3d1: HUD")
 UIRegistry.HUDEnabled = HudSection:Toggle({
 Name = "Микро-HUD (FPS, пинг, ТПС, игроки)",
 Flag = "HUDEnabled",
@@ -4621,6 +4643,7 @@ pcall(hudEnsure)
 end)
 end
 getgenv().FUST_HUDCleanup = hudDestroy
+fustStep("3d2: секция Лут")
 UIRegistry.LootEnabled = LootSection:Toggle({
 Name = "ESP мешков с добычей (рюкзаки игроков)",
 Flag = "LootEnabled",
@@ -4766,6 +4789,8 @@ end
 })
 LootCSection:Label("Чамсы — это пул из 12 Highlight'ов: подсвечиваются 12 БЛИЖАЙШИХ моделей. Дальний лут не подсвечивается — это плата за FPS на телефоне.")
 -- 0.39v16: yield убран — в v13 без него работало
+fustStep("3e: Боты и НПС")
+task.wait() -- 0.49: вдох+метка
 uiStep("Вкладка Боты и НПС", function()
 BotPage = Window:Page({ Name = "Боты и НПС", Icon = ICON_VISUALS })
 BotEspSection = BotPage:Section({ Name = "ESP ботов", Tab = "Боты", Side = 1 })
@@ -6724,8 +6749,23 @@ end
 Drawing = { new = function() return makeDummyDrawing() end, Fonts = { Plex = 0 } }
 warn("[FUST] Drawing недоступен в этом экзекуторе — ESP/прицел работают вхолостую")
 end
+fustStep("3e1: аим-визуал (Drawing отложен)")
+task.wait() -- 0.49: вдох+метка
 AIM_FOV_OFF = Color3.fromRGB(150, 0, 20)
 AIM_FOV_ON = Color3.fromRGB(0, 255, 100)
+-- ======================================================================
+-- 0.49: Drawing-объекты БОЛЬШЕ НЕ создаются при инициализации.
+-- На части мобильных экзекуторов Drawing.new("Circle"/"Line") виснет
+-- НАТИВНО — pcall НЕ ловит, поток умирает намертво (FPS 0, потом ANR).
+-- Все 14 объектов уходят в FUST_DRAW_QUEUE и создаются ТОЛЬКО ПОСЛЕ
+-- «4/4» — по одному, с меткой на плашке. Если зависнет на
+-- «POST: Drawing ...» — меню уже работает, виновник назван на экране.
+-- ======================================================================
+chLines, chOutline = {}, {} -- синхронно: прицел nil-безопасен сразу
+local FUST_DRAW_QUEUE = {}
+FUST_DRAW_QUEUE[#FUST_DRAW_QUEUE + 1] = function()
+fustStep("POST: Drawing FOV-круг")
+task.wait()
 fovCircle = SafeDrawing("Circle")
 if fovCircle then
 fovCircle.Thickness = 1.5
@@ -6734,8 +6774,7 @@ fovCircle.Filled = false
 fovCircle.Radius = Aim.FOV
 fovCircle.Color = AIM_FOV_OFF
 fovCircle.Visible = false
-else
-warn("[FUST] Drawing.new(\"Circle\") не создался — FOV-круг отключён, аимбот продолжает работать")
+end
 end
 -- 0.39: ПРИЦЕЛ В СТИЛЕ CS2 — настраиваемые длина/толщина/зазор/точка/обводка/цвет
 CH = {
@@ -6753,16 +6792,25 @@ Alpha = 1,         -- прозрачность 0..1
 RecoilFollow = false, -- прицел следует за отдачей (как CS cl_crosshair_recoil)
 }
 CH_GAP, CH_LEN = 5, 7 -- legacy aliases (синхронизируются из CH)
-chLines = {}
-for i = 1, 4 do
+-- 0.49: лучи прицела — в очередь (см. fustDrawInit у 4/4)
+for _fustI = 1, 4 do
+local _idx = _fustI -- 0.49: локальная копия для замыкания
+FUST_DRAW_QUEUE[#FUST_DRAW_QUEUE + 1] = function()
+fustStep("POST: Drawing прицел " .. _idx .. "/4")
+task.wait()
 local l = SafeDrawing("Line")
 if l then
 l.Thickness = 2
 l.Color = Color3.fromRGB(255, 30, 30)
 l.Visible = false
-chLines[i] = l
+chLines[_idx] = l
 end
 end
+end
+-- 0.49: точка прицела и обводка — в очередь (см. fustDrawInit у 4/4)
+FUST_DRAW_QUEUE[#FUST_DRAW_QUEUE + 1] = function()
+fustStep("POST: Drawing точка")
+task.wait()
 chDot = SafeDrawing("Circle")
 if chDot then
 chDot.Radius = 1
@@ -6771,15 +6819,19 @@ chDot.Filled = true
 chDot.Color = Color3.fromRGB(255, 30, 30)
 chDot.Visible = false
 end
--- обводка: 8 линий вокруг основных (4 направления × 2 смещения)
-chOutline = {}
-for i = 1, 8 do
+end
+for _fustJ = 1, 8 do
+local _jdx = _fustJ -- 0.49: локальная копия для замыкания
+FUST_DRAW_QUEUE[#FUST_DRAW_QUEUE + 1] = function()
+fustStep("POST: Drawing обводка " .. _jdx .. "/8")
+task.wait()
 local l = SafeDrawing("Line")
 if l then
 l.Thickness = 3
 l.Color = Color3.fromRGB(0, 0, 0)
 l.Visible = false
-chOutline[i] = l
+chOutline[_jdx] = l
+end
 end
 end
 function updateCrosshair(center, visible)
@@ -8871,6 +8923,8 @@ if getgenv().FUST_AimCleanup then
 pcall(getgenv().FUST_AimCleanup)
 end
 aimConnection = nil
+fustStep("3f: аим-рендер")
+task.wait() -- 0.49: вдох+метка
 aimConnection = RunService.RenderStepped:Connect(function()
 if getgenv().FUST_SESSION ~= FUST_SESSION then
 aimConnection:Disconnect()
@@ -10310,6 +10364,8 @@ espVisCacheCount = espVisCacheCount + 1
 return state
 end
 renderConnection = nil
+fustStep("3g: рендер-цикл")
+task.wait() -- 0.49: вдох+метка
 renderConnection = RunService.RenderStepped:Connect(function()
 if getgenv().FUST_SESSION ~= FUST_SESSION then
 renderConnection:Disconnect()
@@ -11028,6 +11084,8 @@ end)
 -- 0.39v16: yield убран — в v13 без него работало
 
 -- ============================================================================
+fustStep("3h: лог киков")
+task.wait() -- 0.49: вдох+метка
 -- FUST KICK/BAN LOGGER 0.38 — лог киков/банов с persist между запусками
 -- ============================================================================
 -- Логирует каждый вылет LocalPlayer: время, place, executor, что было
@@ -11051,7 +11109,11 @@ end
 local function klRead()
 if type(isfile) ~= "function" or not isfile(KICKLOG_FILE) then return "" end
 local ok, c = pcall(readfile, KICKLOG_FILE)
-return ok and c or ""
+if not ok or type(c) ~= "string" then return "" end
+-- 0.49: только хвост 64КБ — за часы тестов лог растёт, полный
+-- паттерн-матч по нему блокировал поток загрузки
+if #c > 65536 then c = c:sub(#c - 65535) end
+return c
 end
 
 local function klRotateIfNeeded()
@@ -11352,6 +11414,8 @@ print("[FUST-KL] лог киков/банов активен. Файл: " .. KIC
 -- /FUST KICK/BAN LOGGER ======================================================
 
 -- ============================================================================
+fustStep("3i: вкладка Логи")
+task.wait() -- 0.49: вдох+метка
 -- 0.39v2: UI ЛОГОВ В САМОМ ЧИТЕ — вкладка "Логи" с просмотром FUST_kicks.log
 -- ============================================================================
 -- 0.39v16: yield убран — в v13 без него работало
@@ -11448,6 +11512,19 @@ end
 end)
 fustStep("4/4: финал")
 print("[FUST] 4/4: всё активно. Меню: тап по кнопке-петуху, на ПК — RightControl.")
+-- 0.49: меню собрано и видно — только теперь создаём Drawing-объекты,
+-- по одному с шагом 0.25с. Висяк на Drawing больше не мешает загрузке.
+pcall(function()
+for _fustK = 1, #FUST_DRAW_QUEUE do
+task.delay(0.25 * _fustK, FUST_DRAW_QUEUE[_fustK])
+end
+end)
+task.delay(0.25 * #FUST_DRAW_QUEUE + 4, function()
+fustStep("ГОТОВО 0.49 — тапни петуха слева")
+task.delay(6, function()
+pcall(function() loadWidget:Destroy() end) -- V7: плашку убираем
+end)
+end)
 getgenv().FUST_READY = true
 fustStampDestroy()
 -- 0.48: убираем плашку лоадера v4 (на Delta фоновые потоки лоадера убиваются,
@@ -11544,7 +11621,7 @@ t1.Font = Enum.Font.GothamBold
 t1.TextSize = 17
 t1.TextColor3 = Color3.fromRGB(255, 130, 130)
 t1.TextXAlignment = Enum.TextXAlignment.Left
-t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.48 — ОШИБКА ЗАПУСКА"
+t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.49 — ОШИБКА ЗАПУСКА"
 t1.Parent = fr
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 100, 0, 26)

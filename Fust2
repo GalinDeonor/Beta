@@ -1,4 +1,183 @@
-enInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(157, 171, 182)}):Play()
+size(25)
+                    -- P6: возвращаем объект для конфигов
+                    local self = {}
+                    function self:Set(v, silent)
+                        v = v and true or false
+                        if v == State then return end
+                        State = v
+                        if not silent then options.callback(State) end
+                        TweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            Position = State and UDim2.new(0.74, 0, 0.5, 0) or UDim2.new(0.25, 0, 0.5, 0)
+                        }):Play()
+                        TweenService:Create(toggleLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            TextColor3 = State and Color3.fromRGB(234, 239, 246) or Color3.fromRGB(157, 171, 182)
+                        }):Play()
+                        TweenService:Create(toggleButton, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            BackgroundColor3 = State and Color3.fromRGB(255, 59, 48) or Color3.fromRGB(77, 77, 77)
+                        }):Play()
+                        TweenService:Create(toggleFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
+                            BackgroundColor3 = State and Color3.fromRGB(51, 12, 10) or Color3.fromRGB(4, 4, 11)
+                        }):Play()
+                    end
+                    function self:Get() return State end
+                    self.Value = function() return State end
+                    self.Instance = toggleLabel
+                    return self
+                end
+
+                function elements:Slider(options)
+                    if not options.text or not options.min or not options.max or not options.callback then Notify("Slider", "Missing arguments!") return end
+
+                    local Slider = Instance.new("Frame")
+                    local sliderLabel = Instance.new("TextLabel")
+                    local sliderFrame = Instance.new("TextButton")
+                    local sliderBall = Instance.new("TextButton")
+                    local sliderBallCorner = Instance.new("UICorner")
+                    local sliderTextBox = Instance.new("TextBox")
+                    buttoneffect({frame = sliderLabel, entered = Slider})
+
+                    local Value
+                    local Held = false
+
+                    local UIS = game:GetService("UserInputService")
+                    local RS = game:GetService("RunService")
+                    local Mouse = game.Players.LocalPlayer:GetMouse()
+
+                    local percentage = 0
+                    local step = 0.01
+                    -- P4: touch-трекинг — последняя позиция ввода (палец/мышь)
+                    local lastInputX = nil
+                    local posConn = UIS.InputChanged:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseMovement
+                        or inp.UserInputType == Enum.UserInputType.Touch then
+                            lastInputX = inp.Position.X
+                        end
+                    end)
+
+                    local function snap(number, factor)
+                        if factor == 0 then
+                            return number
+                        else
+                            return math.floor(number/factor+0.5)*factor
+                        end
+                    end
+
+                    UIS.InputEnded:Connect(function(Mouse)
+                        Held = false
+                    end)
+
+                    Slider.Name = "Slider"
+                    Slider.Parent = sectionFrame
+                    Slider.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
+                    Slider.BackgroundTransparency = 1.000
+                    Slider.Position = UDim2.new(0.0395348854, 0, 0.947335422, 0)
+                    Slider.Size = UDim2.new(0, 200, 0, 22)
+
+                    sliderLabel.Name = "sliderLabel"
+                    sliderLabel.Parent = Slider
+                    sliderLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
+                    sliderLabel.BackgroundTransparency = 1.000
+                    sliderLabel.Position = UDim2.new(0.2, 0, 0.5, 0)
+                    sliderLabel.Size = UDim2.new(0, 77, 0, 22)
+                    sliderLabel.Font = Enum.Font.Gotham
+                    sliderLabel.Text = " " .. options.text
+                    sliderLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
+                    sliderLabel.TextSize = 14.000
+                    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
+                    sliderLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
+                        if sliderLabel.TextBounds.X > 75 then
+                            sliderLabel.TextScaled = true
+                        else
+                            sliderLabel.TextScaled = false
+                        end
+                    end)
+
+                    sliderFrame.Name = "sliderFrame"
+                    sliderFrame.Parent = sliderLabel
+                    sliderFrame.BackgroundColor3 = Color3.fromRGB(110, 34, 28)
+                    sliderFrame.BorderSizePixel = 0
+                    sliderFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderFrame.Position = UDim2.new(1.6, 0, 0.5, 0)
+                    sliderFrame.Size = UDim2.new(0, 72, 0, 2)
+                    sliderFrame.Text = ""
+                    sliderFrame.AutoButtonColor = false
+                    sliderFrame.MouseButton1Down:Connect(function()
+                        Held = true
+                    end)
+
+                    sliderBall.Name = "sliderBall"
+                    sliderBall.Parent = sliderFrame
+                    sliderBall.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderBall.BackgroundColor3 = Color3.fromRGB(255, 94, 84)
+                    sliderBall.BorderSizePixel = 0
+                    sliderBall.Position = UDim2.new(0, 0, 0.5, 0)
+                    sliderBall.Size = UDim2.new(0, 14, 0, 14)
+                    sliderBall.AutoButtonColor = false
+                    sliderBall.Font = Enum.Font.SourceSans
+                    sliderBall.Text = ""
+                    sliderBall.TextColor3 = Color3.fromRGB(0, 0, 0)
+                    sliderBall.TextSize = 14.000
+                    sliderBall.MouseButton1Down:Connect(function()
+                        Held = true
+                    end)
+
+                    local function setByValue(v, silent)
+                        v = tonumber(v) or options.min
+                        v = math.clamp(v, options.min, options.max)
+                        Value = v
+                        percentage = math.clamp((v - options.min) / ((options.max - options.min) / 0.9), 0, 0.9)
+                        sliderTextBox.Text = tostring(Value)
+                        sliderBall.Position = UDim2.new(percentage, 0, 0.5, 0)
+                        if not silent then options.callback(Value) end
+                    end
+                    RS.RenderStepped:Connect(function()
+                        if Held then
+                            local BtnPos = sliderBall.Position
+                            local MousePos = lastInputX or UIS:GetMouseLocation().X
+                            local FrameSize = sliderFrame.AbsoluteSize.X
+                            local FramePos = sliderFrame.AbsolutePosition.X
+                            local pos = snap((MousePos-FramePos)/FrameSize,step)
+                            percentage = math.clamp(pos,0,0.9)
+
+                            Value = ((((tonumber(options.max) - tonumber(options.min)) / 0.9) * percentage)) + tonumber(options.min)
+                            Value = round(Value, options.float)
+                            Value = math.clamp(Value, options.min, options.max)
+                            sliderTextBox.Text = Value
+                            options.callback(Value)
+                            sliderBall.Position = UDim2.new(percentage,0,BtnPos.Y.Scale, BtnPos.Y.Offset)
+                        end
+                    end)
+                    -- P4: стартовое значение
+                    if options.default ~= nil then
+                        setByValue(options.default, true)
+                    else
+                        sliderTextBox.Text = tostring(options.min)
+                        Value = options.min
+                    end
+
+                    sliderBallCorner.CornerRadius = UDim.new(0, 50)
+                    sliderBallCorner.Name = "sliderBallCorner"
+                    sliderBallCorner.Parent = sliderBall
+
+                    sliderTextBox.Name = "sliderTextBox"
+                    sliderTextBox.Parent = sliderLabel
+                    sliderTextBox.BackgroundColor3 = Color3.fromRGB(1, 7, 17)
+                    sliderTextBox.AnchorPoint = Vector2.new(0.5, 0.5)
+                    sliderTextBox.Position = UDim2.new(2.4, 0, 0.5, 0)
+                    sliderTextBox.Size = UDim2.new(0, 31, 0, 15)
+                    sliderTextBox.Font = Enum.Font.Gotham
+                    sliderTextBox.Text = options.min
+                    sliderTextBox.TextColor3 = Color3.fromRGB(234, 239, 245)
+                    sliderTextBox.TextSize = 11.000
+                    sliderTextBox.TextWrapped = true
+
+                    sliderTextBox.Focused:Connect(function()
+                        TweenService:Create(sliderLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(234, 239, 246)}):Play()
+                    end)
+
+                    sliderTextBox.FocusLost:Connect(function(Enter)
+                        TweenService:Create(sliderLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(157, 171, 182)}):Play()
                         if Enter then
                             if sliderTextBox.Text ~= nil and sliderTextBox.Text ~= "" then
                                 if tonumber(sliderTextBox.Text) > options.max then
@@ -854,7 +1033,7 @@ MathClamp = math.clamp
 
 local Library = {}
 Library.LG = LG
-Library.Version = "0.48-Neverlose"
+Library.Version = "0.49-Neverlose"
 Library.MenuKeybind = "RightControl"
 Library.Flags = {}
 Library.SetFlags = {}
@@ -1592,484 +1771,4 @@ function Library:CreateSettingsPage(Win)
                                 Callback = function()
                                         pcall(function()
                                                 if ConfigSelected and ConfigSelected ~= "" then
-                                                        Library:LoadConfig(readfile(Library.Folders.Configs .. "/" .. ConfigSelected .. ".json"))
-                                                end
-                                        end)
-                                end,
-                        })
-                        ConfigsSection:Button({
-                                Name = "Save",
-                                Callback = function()
-                                        pcall(function()
-                                                if ConfigSelected and ConfigSelected ~= "" then
-                                                        writefile(Library.Folders.Configs .. "/" .. ConfigSelected .. ".json", Library:GetConfig())
-                                                end
-                                        end)
-                                end,
-                        })
-                        ConfigsSection:Button({
-                                Name = "Delete",
-                                Callback = function()
-                                        pcall(function()
-                                                if ConfigSelected and ConfigSelected ~= "" then
-                                                        delfile(Library.Folders.Configs .. "/" .. ConfigSelected .. ".json")
-                                                        Library:RefreshConfigsList(ConfigsDropdown)
-                                                end
-                                        end)
-                                end,
-                        })
-                        ConfigsSection:Button({
-                                Name = "Refresh",
-                                Callback = function()
-                                        Library:RefreshConfigsList(ConfigsDropdown)
-                                end,
-                        })
-                        Library:RefreshConfigsList(ConfigsDropdown)
-                end)
-                if not ok then
-                        warn("[FUST][Настройки] " .. tostring(err))
-                        pcall(function() journal("ОШИБКА НАСТРОЕК: " .. tostring(err)) end)
-                end
-        end)
-        return true
-end
-
--- ================= конфиги =================
-function Library:GetConfig()
-        local Config = {}
-        for flag, v in pairs(Library.Flags) do
-                pcall(function()
-                        if type(v) == "table" and v.Key ~= nil then
-                                Config[flag] = { Key = tostring(v.Key), Mode = tostring(v.Mode or "Toggle") }
-                        elseif type(v) == "table" and v.Color ~= nil then
-                                Config[flag] = { Color = v.Color }
-                        else
-                                Config[flag] = v
-                        end
-                end)
-        end
-        return game:GetService("HttpService"):JSONEncode(Config)
-end
-
-function Library:LoadConfig(Raw)
-        local ok, decoded = pcall(function()
-                return game:GetService("HttpService"):JSONDecode(Raw)
-        end)
-        if not ok or type(decoded) ~= "table" then
-                warn("[ПП] LoadConfig: конфиг битый")
-                return false
-        end
-        for flag, value in pairs(decoded) do
-                local w = Library.SetFlags[flag]
-                if w and w.Set then
-                        pcall(function()
-                                if type(value) == "table" and value.Key ~= nil then
-                                        w:Set(value.Key)
-                                elseif type(value) == "table" and value.Color ~= nil then
-                                        w:Set(value.Color)
-                                else
-                                        w:Set(value)
-                                end
-                        end)
-                end
-        end
-        return true
-end
-
-function Library:DeleteConfig(Config)
-        pcall(function()
-                if type(isfile) == "function" and isfile(Library.Folders.Configs .. "/" .. Config) then
-                        delfile(Library.Folders.Configs .. "/" .. Config)
-                end
-        end)
-end
-
-function Library:RefreshConfigsList(Element)
-        local list = {}
-        pcall(function()
-                if type(listfiles) == "function" then
-                        for _, f in ipairs(listfiles(Library.Folders.Configs)) do
-                                local name = string.match(tostring(f), "([^/\\]+)%.json$")
-                                if name then table.insert(list, name) end
-                        end
-                end
-        end)
-        if Element and Element.Obj then
-                pcall(function()
-                        if Element.Obj.SetOptions then Element.Obj:SetOptions(list) end
-                end)
-        end
-        return list
-end
-
--- ================= тема (цвета вшиты в Neverlose патчем P9 — тут no-op) =================
-function Library:ChangeTheme(Index, Value)
-        pcall(function()
-                Library.Theme[Index] = Value
-        end)
-end
-
--- заглушка вотермарки
-function Library:Watermark()
-        local stub = {}
-        function stub:SetText() end
-        function stub:SetVisibility() end
-        function stub:SetCenter() end
-        return stub
-end
-
-getgenv().Library = Library
-return Library
-end)()
-pcall(function()
-local function reparent(gui)
-if not gui or not gui.Instance then
-return
-end
-local coreGui = game:GetService("CoreGui")
-gui.Instance.Parent = coreGui
-if gui.Instance.Parent ~= coreGui then
-local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
-if pg then
-gui.Instance.Parent = pg
-gui.Instance.DisplayOrder = 999999
-end
-else
-gui.Instance.DisplayOrder = 999999
-end
-end
-reparent(Library.Holder)
-reparent(Library.UnusedHolder)
-end)
-print("[FUST] 3/4: Neverlose UI готов, создаю окно...")
-fustStep("3a: создание окна")
-task.wait() -- 0.48: вдох перед сборкой окна
--- 0.39v6: ИКОНКА ПЕТУХА — используем Roblox asset ID напрямую.
--- getcustomasset убран — он детектится анти-читом ("Exploit detected;
--- getcustomasset"). rbxassetid работает везде и не палится.
-PETUH_ICON_ASSET = "rbxassetid://134242818164054"
-print("[FUST] Иконка петуха: rbxassetid (безопасно)")
-
--- 0.40: ОКНО ЧЕРЕЗ LiquidGlass (красный акцент задаётся в адаптере)
-print("[FUST] 3a0: конструктор окна Neverlose...")
-fustStep("3a0: конструктор окна")
-Window = Library:Window({
-Name = "Пьяный Петух",
-SubName = "FUST Survival · LiquidGlass UI",
-Logo = PETUH_ICON_ASSET
-})
-UserInputService = game:GetService("UserInputService")
-WINDOW_MARGIN = 8
--- 0.39v17: getViewSize оставлен — им пользуется кнопка-петух (кламп в экран)
-function getViewSize()
-local cam = Workspace.CurrentCamera
-local vp = (cam and cam.ViewportSize and cam.ViewportSize.X > 100)
-and cam.ViewportSize or Vector2.new(1280, 800)
-pcall(function()
-local inset = game:GetService("GuiService"):GetGuiInset()
-vp = Vector2.new(vp.X, vp.Y - inset.Y)
-end)
-return vp
-end
--- 0.40: позицию/размер/фуллскрин окна держит сам LiquidGlass —
--- он клампит окно в экран и не даёт ему улететь (старые костыли удалены).
-PETUH_MENU_KEY = Enum.KeyCode.RightControl
-PETUH_BTN_HIDDEN = false
--- 0.42: СВОЯ КНОПКА-ПЕТУХ УБРАНА. Раньше на мобиле LiquidGlass сам создаёт
--- нативную MobileButton (слева сверху, иконка «layers»), а наша кнопка-петух
--- создавалась ВТОРОЙ = «две плавающих кнопки чита». На ПК MobileButton нет,
--- но есть хоткей RightControl + нативная кнопка X в окне (закрыть/скрыть).
--- Если на ПК нужна кнопка-петух (не только хоткей) — раскомментируй блок ниже.
-local btn = nil
-local mobileBtn = nil
--- нативная MobileButton от LiquidGlass (создаётся автоматически на мобиле)
-pcall(function()
-mobileBtn = Window.LGWindow and Window.LGWindow.MobileButton and Window.LGWindow.MobileButton.Root
-end)
--- своя кнопка-петух — ТОЛЬКО на ПК (где нет MobileButton)
-if not mobileBtn and not (UserInputService.TouchEnabled == true) then
-btn = Instance.new("ImageButton")
-btn.Name = "PetuhMenuToggle"
-btn.Image = PETUH_ICON_ASSET
-btn.ScaleType = Enum.ScaleType.Fit
-btn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-btn.BackgroundTransparency = 0.25
-btn.BorderSizePixel = 0
-btn.Size = UDim2.fromOffset(34, 34)
-btn.Position = UDim2.new(1, -44, 0.5, -17)
-btn.Active = true
-btn.Selectable = false
-btn.AutoButtonColor = false
-btn.Parent = Library.Holder.Instance
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
-corner.Parent = btn
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(255, 59, 48)
-stroke.Thickness = 1.5
-stroke.Transparency = 0.3
-stroke.Parent = btn
-local dragging = false
-local dragStart, startPos
-local moved = false
-btn.InputBegan:Connect(function(input)
-if input.UserInputType == Enum.UserInputType.MouseButton1 then
-dragging = true
-moved = false
-dragStart = input.Position
-startPos = btn.AbsolutePosition
-end
-end)
-UserInputService.InputChanged:Connect(function(input)
-if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-local delta = input.Position - dragStart
-if delta.Magnitude > 8 then
-moved = true
-end
-local bvp = getViewSize()
-local bs = btn.AbsoluteSize
-local nx = MathClamp(startPos.X + delta.X, WINDOW_MARGIN, math.max(WINDOW_MARGIN, bvp.X - bs.X - WINDOW_MARGIN))
-local ny = MathClamp(startPos.Y + delta.Y, WINDOW_MARGIN, math.max(WINDOW_MARGIN, bvp.Y - bs.Y - WINDOW_MARGIN))
-btn.Position = UDim2.fromOffset(nx, ny)
-end
-end)
-UserInputService.InputEnded:Connect(function(input)
-if input.UserInputType == Enum.UserInputType.MouseButton1 then
-if dragging and not moved then
-pcall(function() Window:SetOpen(not Window:IsOpenLive()) end)
-end
-dragging = false
-end
-end)
-end
--- 0.42: перекраска. На ПК красим свою кнопку; MobileButton перекрашивается
--- через LiquidGlass:SetAccent автоматически.
-function petuhAccentChanged(c)
-pcall(function()
-if btn and c then
-for _, ch in ipairs(btn:GetChildren()) do
-if ch:IsA("UIStroke") then ch.Color = c end
-end
-btn.BackgroundColor3 = Color3.new(math.min(1, c.R * 0.25), math.min(1, c.G * 0.25), math.min(1, c.B * 0.25))
-end
-end)
-end
--- 0.42: скрытие работает для обеих кнопок. На мобиле — MobileButton,
--- на ПК — наша кнопка-петух.
-function petuhSetBtnHidden(state)
-PETUH_BTN_HIDDEN = state
-pcall(function() if btn then btn.Visible = not state end end)
-pcall(function() if mobileBtn then mobileBtn.Visible = not state end end)
-journal("КНОПКА-ПЕТУХ " .. (state and "СКРЫТА (только хоткей)" or "ВИДНА"))
-end
-getgenv().FUST_PetuhBtn = btn
-pcall(function()
-Library:CreateSettingsPage(Window, nil)
-end)
-UI_ERRORS = {}
-function uiStep(stepName, fn)
-print("[FUST][UI] блок начат: " .. stepName)
-local ok, err = pcall(fn)
-if ok then
-print("[FUST][UI] блок собран: " .. stepName)
-else
-warn("[FUST][UI] ОШИБКА БЛОКА '" .. stepName .. "': " .. tostring(err))
-pcall(function()
-journal("ОШИБКА UI '" .. stepName .. "': " .. tostring(err))
-end)
-table.insert(UI_ERRORS, stepName .. ": " .. tostring(err))
-end
-task.wait() -- 0.48: вдох после UI-блока — телефон не замерзает
-end
-ICON_SETTINGS = "rbxassetid://80758916183665"
-ICON_COMBAT = "rbxassetid://87563802520297"
-ICON_VISUALS = "rbxassetid://100033680381365"
-UIRegistry = {}
-Window:Group("Главное")
-MainPage = Window:Page({ Name = "Main", Icon = ICON_SETTINGS })
-MiscSection = MainPage:Section({ Name = "Вайтлист", Tab = "Функции", Side = 1 })
-ConfigSection = MainPage:Section({ Name = "Конфиги", Tab = "Функции", Side = 2 })
-FreeCam = { Enabled = false, Speed = 30, AutoFly = false }
-freecamEnable = function() end
-freecamDisable = function() end
-FreeCamSection = MainPage:Section({ Name = "Свободная камера (FreeCam)", Tab = "Функции", Side = 2 })
-UIRegistry.FreeCamEnabled = FreeCamSection:Toggle({
-Name = "Фрикам (камера отдельно от тела)",
-Flag = "FreeCamEnabled",
-Default = false,
-Callback = function(state)
-if state then
-freecamEnable()
-else
-freecamDisable()
-end
-end
-})
-UIRegistry.FreeCamSpeed = FreeCamSection:Slider({
-Name = "Скорость полёта",
-Flag = "FreeCamSpeed",
-Default = 30,
-Min = 5,
-Max = 300,
-Decimals = 5,
-Suffix = " st/s",
-Callback = function(Value)
-FreeCam.Speed = Value
-end
-})
-UIRegistry.FreeCamAutoFly = FreeCamSection:Toggle({
-Name = "Авто-полёт вперёд (для телефона)",
-Flag = "FreeCamAutoFly",
-Default = false,
-Callback = function(state)
-FreeCam.AutoFly = state
-journal("ФРИКАМ: авто-полёт " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-FreeCamSection:Label("Xeno: WASD — лететь, Space/Ctrl — вверх/вниз, Shift — ускорение, ОБЗОР — зажать ПКМ и вести мышью. Телефон: тело стоит на месте; левый джойстик — полёт, палец по ПРАВОЙ половине экрана — обзор, кнопка прыжка — вверх. КЛАВИШИ ВКЛ/СКРОСТЬ — назначаются ниже.")
--- 0.39: настраиваемые клавиши фрикама
-FreeCamKeys = { Toggle = Enum.KeyCode.K, Slow = Enum.KeyCode.Z, Fast = Enum.KeyCode.X }
-local FC_KEY_OBJ = nil
--- 0.42 FIX: Mode="Toggle" в LiquidGlass сам зовёт Callback(true/false) при
--- нажатии. Раньше Callback только менял клавишу, а отдельно FUST_FCKeyConn
--- ловил InputBegan и звал freecamToggle() = ДВОЙНАЯ обработка. Теперь:
--- Callback зовёт freecamEnable/Disable, а FUST_FCKeyConn убран.
--- OnKeyChanged обновляет FreeCamKeys (для совместимости со старым кодом).
-UIRegistry.FreeCamKeyToggle = FreeCamSection:Label("Клавиша: вкл/выкл фрикам"):Keybind({
-Name = "Клавиша: вкл/выкл фрикам",
-Flag = "FreeCamKeyToggle",
-Default = Enum.KeyCode.K,
-Mode = "Toggle",
-Callback = function(state)
--- 0.42: freecamEnable/Disable определены ниже в файле, но Callback зовётся
--- только при нажатии клавиши (не при создании) — к тому моменту всё готово.
--- pcall защищает от "attempt to call nil" если что-то пошло не так.
-pcall(function()
-if state then freecamEnable() else freecamDisable() end
-end)
-end,
-OnKeyChanged = function(key)
-pcall(function()
-if key then
-FreeCamKeys.Toggle = key
-FC_KEY_TOGGLE = key
-journal("ФРИКАМ: клавиша toggle = " .. tostring(key))
-end
-end)
-end
-})
-local FC_KEY_SLOW_OBJ = nil
-UIRegistry.FreeCamKeySlow = FreeCamSection:Label("Клавиша: скорость МЕНЬШЕ"):Keybind({
-Name = "Клавиша: скорость МЕНЬШЕ",
-Flag = "FreeCamKeySlow",
-Default = Enum.KeyCode.Z,
-Mode = "Toggle",
-Callback = function(state)
-if state then
-FreeCam.Speed = math.max(5, FreeCam.Speed - FC_SPEED_STEP)
-if UIRegistry.FreeCamSpeed and UIRegistry.FreeCamSpeed.Set then
-pcall(function() UIRegistry.FreeCamSpeed:Set(FreeCam.Speed) end)
-end
-journal("ФРИКАМ: скорость " .. math.floor(FreeCam.Speed))
-end
-end,
-OnKeyChanged = function(key)
-pcall(function()
-if key then FreeCamKeys.Slow = key; FC_KEY_SLOW = key end
-end)
-end
-})
-local FC_KEY_FAST_OBJ = nil
-UIRegistry.FreeCamKeyFast = FreeCamSection:Label("Клавиша: скорость БОЛЬШЕ"):Keybind({
-Name = "Клавиша: скорость БОЛЬШЕ",
-Flag = "FreeCamKeyFast",
-Default = Enum.KeyCode.X,
-Mode = "Toggle",
-Callback = function(state)
-if state then
-FreeCam.Speed = math.min(300, FreeCam.Speed + FC_SPEED_STEP)
-if UIRegistry.FreeCamSpeed and UIRegistry.FreeCamSpeed.Set then
-pcall(function() UIRegistry.FreeCamSpeed:Set(FreeCam.Speed) end)
-end
-journal("ФРИКАМ: скорость " .. math.floor(FreeCam.Speed))
-end
-end,
-OnKeyChanged = function(key)
-pcall(function()
-if key then FreeCamKeys.Fast = key; FC_KEY_FAST = key end
-end)
-end
-})
-uiStep("Вкладка Аимбот", function()
-Window:Group("Бой")
-AimPage = Window:Page({ Name = "Аимбот", Icon = ICON_COMBAT })
-AimSection = AimPage:Section({ Name = "Аимбот", Tab = "Аимбот", Side = 1 })
-HitboxSection = AimPage:Section({ Name = "Хитбокс", Tab = "Аимбот", Side = 2 })
-TargetSection = AimPage:Section({ Name = "Цель", Tab = "Аимбот", Side = 2 })
-end)
-uiStep("Вкладки ESP/Визуалы/Лут", function()
-Window:Group("Визуал")
-EspPage = Window:Page({ Name = "ESP", Icon = ICON_VISUALS })
-EspSection = EspPage:Section({ Name = "ESP", Tab = "ESP", Side = 1 })
-VisFilterSection = EspPage:Section({ Name = "Фильтры", Tab = "Визуалы", Side = 1 })
-WorldSection = EspPage:Section({ Name = "Мир и освещение", Tab = "Визуалы", Side = 1 })
-TracerSection = EspPage:Section({ Name = "Трассеры пуль", Tab = "Визуалы", Side = 2 })
-LootSection = EspPage:Section({ Name = "Мешки с добычей", Tab = "Лут", Side = 1 })
-end)
--- 0.39v16: yield убран — в v13 без него работало
-print("[FUST] 3/4: интерфейс создан, окно должно быть на экране")
-fustStep("3b: фичи и вкладки")
-task.wait() -- 0.48: вдох после сборки UI
-S = {
-ESP = {
-Enabled = false,
-Box = false,
-Chams = false,
-ChamsTransparency = 0.5,
-Name = false,
-Item = false,
-Distance = false,
-HealthBar = false,
-MaxDistance = 1500,
-DistanceScale = true, 
-TeamCheck = false, 
-VisCheck = false, 
-VisHitbox = false, 
-},
-ESPColors = {
-Box = Color3.fromRGB(0, 255, 255),
-},
-Hitbox = { Enabled = false, Size = 5, Transparency = 0.7 },
-FullBright = false,
-NoDecoration = false,
-NoGrass = false,
-NoFog = false,
-Bullets = { Enabled = false, Style = "Луч", Width = 1.5, Transparency = 0, Fade = 1 },
-NPC = {
-ESP = false,
-CatGuards = true, 
-CatPeaceful = false, 
-CatAnimals = false, 
-CatSleepers = false, 
-DebugLog = false, 
-Box = false,
-Name = false,
-Item = false,
-Distance = false,
-HealthBar = false,
-Chams = false,
-ChamsTransparency = 0.5,
-MaxDistance = 3000,
-HitboxEnabled = false,
-HitboxSize = 5,
-HitboxTransparency = 0.7,
-HitboxAnimals = false, 
-HitboxSleepers = false, 
-},
-HUD = {
-Enabled = true,
-Size = 11, 
-BgTransparency = 0.35, 
-TextTransparency = 0, 
-Corner = "Лево-низ", 
-Show
+                                                        Library:LoadConfig(readfile(Library.Folders.Configs 

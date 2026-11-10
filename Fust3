@@ -1,4 +1,491 @@
-TPS = true, 
+.. "/" .. ConfigSelected .. ".json"))
+                                                end
+                                        end)
+                                end,
+                        })
+                        ConfigsSection:Button({
+                                Name = "Save",
+                                Callback = function()
+                                        pcall(function()
+                                                if ConfigSelected and ConfigSelected ~= "" then
+                                                        writefile(Library.Folders.Configs .. "/" .. ConfigSelected .. ".json", Library:GetConfig())
+                                                end
+                                        end)
+                                end,
+                        })
+                        ConfigsSection:Button({
+                                Name = "Delete",
+                                Callback = function()
+                                        pcall(function()
+                                                if ConfigSelected and ConfigSelected ~= "" then
+                                                        delfile(Library.Folders.Configs .. "/" .. ConfigSelected .. ".json")
+                                                        Library:RefreshConfigsList(ConfigsDropdown)
+                                                end
+                                        end)
+                                end,
+                        })
+                        ConfigsSection:Button({
+                                Name = "Refresh",
+                                Callback = function()
+                                        Library:RefreshConfigsList(ConfigsDropdown)
+                                end,
+                        })
+                        Library:RefreshConfigsList(ConfigsDropdown)
+                end)
+                if not ok then
+                        warn("[FUST][Настройки] " .. tostring(err))
+                        pcall(function() journal("ОШИБКА НАСТРОЕК: " .. tostring(err)) end)
+                end
+        end)
+        return true
+end
+
+-- ================= конфиги =================
+function Library:GetConfig()
+        local Config = {}
+        for flag, v in pairs(Library.Flags) do
+                pcall(function()
+                        if type(v) == "table" and v.Key ~= nil then
+                                Config[flag] = { Key = tostring(v.Key), Mode = tostring(v.Mode or "Toggle") }
+                        elseif type(v) == "table" and v.Color ~= nil then
+                                Config[flag] = { Color = v.Color }
+                        else
+                                Config[flag] = v
+                        end
+                end)
+        end
+        return game:GetService("HttpService"):JSONEncode(Config)
+end
+
+function Library:LoadConfig(Raw)
+        local ok, decoded = pcall(function()
+                return game:GetService("HttpService"):JSONDecode(Raw)
+        end)
+        if not ok or type(decoded) ~= "table" then
+                warn("[ПП] LoadConfig: конфиг битый")
+                return false
+        end
+        for flag, value in pairs(decoded) do
+                local w = Library.SetFlags[flag]
+                if w and w.Set then
+                        pcall(function()
+                                if type(value) == "table" and value.Key ~= nil then
+                                        w:Set(value.Key)
+                                elseif type(value) == "table" and value.Color ~= nil then
+                                        w:Set(value.Color)
+                                else
+                                        w:Set(value)
+                                end
+                        end)
+                end
+        end
+        return true
+end
+
+function Library:DeleteConfig(Config)
+        pcall(function()
+                if type(isfile) == "function" and isfile(Library.Folders.Configs .. "/" .. Config) then
+                        delfile(Library.Folders.Configs .. "/" .. Config)
+                end
+        end)
+end
+
+function Library:RefreshConfigsList(Element)
+        local list = {}
+        pcall(function()
+                if type(listfiles) == "function" then
+                        for _, f in ipairs(listfiles(Library.Folders.Configs)) do
+                                local name = string.match(tostring(f), "([^/\\]+)%.json$")
+                                if name then table.insert(list, name) end
+                        end
+                end
+        end)
+        if Element and Element.Obj then
+                pcall(function()
+                        if Element.Obj.SetOptions then Element.Obj:SetOptions(list) end
+                end)
+        end
+        return list
+end
+
+-- ================= тема (цвета вшиты в Neverlose патчем P9 — тут no-op) =================
+function Library:ChangeTheme(Index, Value)
+        pcall(function()
+                Library.Theme[Index] = Value
+        end)
+end
+
+-- заглушка вотермарки
+function Library:Watermark()
+        local stub = {}
+        function stub:SetText() end
+        function stub:SetVisibility() end
+        function stub:SetCenter() end
+        return stub
+end
+
+getgenv().Library = Library
+return Library
+end)()
+pcall(function()
+local function reparent(gui)
+if not gui or not gui.Instance then
+return
+end
+local coreGui = game:GetService("CoreGui")
+gui.Instance.Parent = coreGui
+if gui.Instance.Parent ~= coreGui then
+local pg = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+if pg then
+gui.Instance.Parent = pg
+gui.Instance.DisplayOrder = 999999
+end
+else
+gui.Instance.DisplayOrder = 999999
+end
+end
+reparent(Library.Holder)
+reparent(Library.UnusedHolder)
+end)
+fustStep("3a: создаю окно")
+print("[FUST] 3/4: Neverlose UI готов, создаю окно...")
+fustStep("3a: создание окна")
+task.wait() -- 0.48: вдох перед сборкой окна
+-- 0.39v6: ИКОНКА ПЕТУХА — используем Roblox asset ID напрямую.
+-- getcustomasset убран — он детектится анти-читом ("Exploit detected;
+-- getcustomasset"). rbxassetid работает везде и не палится.
+PETUH_ICON_ASSET = "rbxassetid://134242818164054"
+print("[FUST] Иконка петуха: rbxassetid (безопасно)")
+
+-- 0.40: ОКНО ЧЕРЕЗ LiquidGlass (красный акцент задаётся в адаптере)
+print("[FUST] 3a0: конструктор окна Neverlose...")
+fustStep("3a0: конструктор окна")
+Window = Library:Window({
+Name = "Пьяный Петух",
+SubName = "FUST Survival · LiquidGlass UI",
+Logo = PETUH_ICON_ASSET
+})
+UserInputService = game:GetService("UserInputService")
+WINDOW_MARGIN = 8
+-- 0.39v17: getViewSize оставлен — им пользуется кнопка-петух (кламп в экран)
+function getViewSize()
+local cam = Workspace.CurrentCamera
+local vp = (cam and cam.ViewportSize and cam.ViewportSize.X > 100)
+and cam.ViewportSize or Vector2.new(1280, 800)
+pcall(function()
+local inset = game:GetService("GuiService"):GetGuiInset()
+vp = Vector2.new(vp.X, vp.Y - inset.Y)
+end)
+return vp
+end
+-- 0.40: позицию/размер/фуллскрин окна держит сам LiquidGlass —
+-- он клампит окно в экран и не даёт ему улететь (старые костыли удалены).
+PETUH_MENU_KEY = Enum.KeyCode.RightControl
+PETUH_BTN_HIDDEN = false
+-- 0.42: СВОЯ КНОПКА-ПЕТУХ УБРАНА. Раньше на мобиле LiquidGlass сам создаёт
+-- нативную MobileButton (слева сверху, иконка «layers»), а наша кнопка-петух
+-- создавалась ВТОРОЙ = «две плавающих кнопки чита». На ПК MobileButton нет,
+-- но есть хоткей RightControl + нативная кнопка X в окне (закрыть/скрыть).
+-- Если на ПК нужна кнопка-петух (не только хоткей) — раскомментируй блок ниже.
+local btn = nil
+local mobileBtn = nil
+-- нативная MobileButton от LiquidGlass (создаётся автоматически на мобиле)
+pcall(function()
+mobileBtn = Window.LGWindow and Window.LGWindow.MobileButton and Window.LGWindow.MobileButton.Root
+end)
+-- своя кнопка-петух — ТОЛЬКО на ПК (где нет MobileButton)
+if not mobileBtn and not (UserInputService.TouchEnabled == true) then
+btn = Instance.new("ImageButton")
+btn.Name = "PetuhMenuToggle"
+btn.Image = PETUH_ICON_ASSET
+btn.ScaleType = Enum.ScaleType.Fit
+btn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+btn.BackgroundTransparency = 0.25
+btn.BorderSizePixel = 0
+btn.Size = UDim2.fromOffset(34, 34)
+btn.Position = UDim2.new(1, -44, 0.5, -17)
+btn.Active = true
+btn.Selectable = false
+btn.AutoButtonColor = false
+btn.Parent = Library.Holder.Instance
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = btn
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255, 59, 48)
+stroke.Thickness = 1.5
+stroke.Transparency = 0.3
+stroke.Parent = btn
+local dragging = false
+local dragStart, startPos
+local moved = false
+btn.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 then
+dragging = true
+moved = false
+dragStart = input.Position
+startPos = btn.AbsolutePosition
+end
+end)
+UserInputService.InputChanged:Connect(function(input)
+if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+local delta = input.Position - dragStart
+if delta.Magnitude > 8 then
+moved = true
+end
+local bvp = getViewSize()
+local bs = btn.AbsoluteSize
+local nx = MathClamp(startPos.X + delta.X, WINDOW_MARGIN, math.max(WINDOW_MARGIN, bvp.X - bs.X - WINDOW_MARGIN))
+local ny = MathClamp(startPos.Y + delta.Y, WINDOW_MARGIN, math.max(WINDOW_MARGIN, bvp.Y - bs.Y - WINDOW_MARGIN))
+btn.Position = UDim2.fromOffset(nx, ny)
+end
+end)
+UserInputService.InputEnded:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 then
+if dragging and not moved then
+pcall(function() Window:SetOpen(not Window:IsOpenLive()) end)
+end
+dragging = false
+end
+end)
+end
+-- 0.42: перекраска. На ПК красим свою кнопку; MobileButton перекрашивается
+-- через LiquidGlass:SetAccent автоматически.
+function petuhAccentChanged(c)
+pcall(function()
+if btn and c then
+for _, ch in ipairs(btn:GetChildren()) do
+if ch:IsA("UIStroke") then ch.Color = c end
+end
+btn.BackgroundColor3 = Color3.new(math.min(1, c.R * 0.25), math.min(1, c.G * 0.25), math.min(1, c.B * 0.25))
+end
+end)
+end
+-- 0.42: скрытие работает для обеих кнопок. На мобиле — MobileButton,
+-- на ПК — наша кнопка-петух.
+function petuhSetBtnHidden(state)
+PETUH_BTN_HIDDEN = state
+pcall(function() if btn then btn.Visible = not state end end)
+pcall(function() if mobileBtn then mobileBtn.Visible = not state end end)
+journal("КНОПКА-ПЕТУХ " .. (state and "СКРЫТА (только хоткей)" or "ВИДНА"))
+end
+getgenv().FUST_PetuhBtn = btn
+pcall(function()
+Library:CreateSettingsPage(Window, nil)
+end)
+UI_ERRORS = {}
+function uiStep(stepName, fn)
+print("[FUST][UI] блок начат: " .. stepName)
+local ok, err = pcall(fn)
+if ok then
+print("[FUST][UI] блок собран: " .. stepName)
+else
+warn("[FUST][UI] ОШИБКА БЛОКА '" .. stepName .. "': " .. tostring(err))
+pcall(function()
+journal("ОШИБКА UI '" .. stepName .. "': " .. tostring(err))
+end)
+table.insert(UI_ERRORS, stepName .. ": " .. tostring(err))
+end
+task.wait() -- 0.48: вдох после UI-блока — телефон не замерзает
+end
+ICON_SETTINGS = "rbxassetid://80758916183665"
+ICON_COMBAT = "rbxassetid://87563802520297"
+ICON_VISUALS = "rbxassetid://100033680381365"
+UIRegistry = {}
+Window:Group("Главное")
+MainPage = Window:Page({ Name = "Main", Icon = ICON_SETTINGS })
+MiscSection = MainPage:Section({ Name = "Вайтлист", Tab = "Функции", Side = 1 })
+ConfigSection = MainPage:Section({ Name = "Конфиги", Tab = "Функции", Side = 2 })
+FreeCam = { Enabled = false, Speed = 30, AutoFly = false }
+freecamEnable = function() end
+freecamDisable = function() end
+FreeCamSection = MainPage:Section({ Name = "Свободная камера (FreeCam)", Tab = "Функции", Side = 2 })
+UIRegistry.FreeCamEnabled = FreeCamSection:Toggle({
+Name = "Фрикам (камера отдельно от тела)",
+Flag = "FreeCamEnabled",
+Default = false,
+Callback = function(state)
+if state then
+freecamEnable()
+else
+freecamDisable()
+end
+end
+})
+UIRegistry.FreeCamSpeed = FreeCamSection:Slider({
+Name = "Скорость полёта",
+Flag = "FreeCamSpeed",
+Default = 30,
+Min = 5,
+Max = 300,
+Decimals = 5,
+Suffix = " st/s",
+Callback = function(Value)
+FreeCam.Speed = Value
+end
+})
+UIRegistry.FreeCamAutoFly = FreeCamSection:Toggle({
+Name = "Авто-полёт вперёд (для телефона)",
+Flag = "FreeCamAutoFly",
+Default = false,
+Callback = function(state)
+FreeCam.AutoFly = state
+journal("ФРИКАМ: авто-полёт " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+FreeCamSection:Label("Xeno: WASD — лететь, Space/Ctrl — вверх/вниз, Shift — ускорение, ОБЗОР — зажать ПКМ и вести мышью. Телефон: тело стоит на месте; левый джойстик — полёт, палец по ПРАВОЙ половине экрана — обзор, кнопка прыжка — вверх. КЛАВИШИ ВКЛ/СКРОСТЬ — назначаются ниже.")
+-- 0.39: настраиваемые клавиши фрикама
+FreeCamKeys = { Toggle = Enum.KeyCode.K, Slow = Enum.KeyCode.Z, Fast = Enum.KeyCode.X }
+local FC_KEY_OBJ = nil
+-- 0.42 FIX: Mode="Toggle" в LiquidGlass сам зовёт Callback(true/false) при
+-- нажатии. Раньше Callback только менял клавишу, а отдельно FUST_FCKeyConn
+-- ловил InputBegan и звал freecamToggle() = ДВОЙНАЯ обработка. Теперь:
+-- Callback зовёт freecamEnable/Disable, а FUST_FCKeyConn убран.
+-- OnKeyChanged обновляет FreeCamKeys (для совместимости со старым кодом).
+UIRegistry.FreeCamKeyToggle = FreeCamSection:Label("Клавиша: вкл/выкл фрикам"):Keybind({
+Name = "Клавиша: вкл/выкл фрикам",
+Flag = "FreeCamKeyToggle",
+Default = Enum.KeyCode.K,
+Mode = "Toggle",
+Callback = function(state)
+-- 0.42: freecamEnable/Disable определены ниже в файле, но Callback зовётся
+-- только при нажатии клавиши (не при создании) — к тому моменту всё готово.
+-- pcall защищает от "attempt to call nil" если что-то пошло не так.
+pcall(function()
+if state then freecamEnable() else freecamDisable() end
+end)
+end,
+OnKeyChanged = function(key)
+pcall(function()
+if key then
+FreeCamKeys.Toggle = key
+FC_KEY_TOGGLE = key
+journal("ФРИКАМ: клавиша toggle = " .. tostring(key))
+end
+end)
+end
+})
+local FC_KEY_SLOW_OBJ = nil
+UIRegistry.FreeCamKeySlow = FreeCamSection:Label("Клавиша: скорость МЕНЬШЕ"):Keybind({
+Name = "Клавиша: скорость МЕНЬШЕ",
+Flag = "FreeCamKeySlow",
+Default = Enum.KeyCode.Z,
+Mode = "Toggle",
+Callback = function(state)
+if state then
+FreeCam.Speed = math.max(5, FreeCam.Speed - FC_SPEED_STEP)
+if UIRegistry.FreeCamSpeed and UIRegistry.FreeCamSpeed.Set then
+pcall(function() UIRegistry.FreeCamSpeed:Set(FreeCam.Speed) end)
+end
+journal("ФРИКАМ: скорость " .. math.floor(FreeCam.Speed))
+end
+end,
+OnKeyChanged = function(key)
+pcall(function()
+if key then FreeCamKeys.Slow = key; FC_KEY_SLOW = key end
+end)
+end
+})
+local FC_KEY_FAST_OBJ = nil
+UIRegistry.FreeCamKeyFast = FreeCamSection:Label("Клавиша: скорость БОЛЬШЕ"):Keybind({
+Name = "Клавиша: скорость БОЛЬШЕ",
+Flag = "FreeCamKeyFast",
+Default = Enum.KeyCode.X,
+Mode = "Toggle",
+Callback = function(state)
+if state then
+FreeCam.Speed = math.min(300, FreeCam.Speed + FC_SPEED_STEP)
+if UIRegistry.FreeCamSpeed and UIRegistry.FreeCamSpeed.Set then
+pcall(function() UIRegistry.FreeCamSpeed:Set(FreeCam.Speed) end)
+end
+journal("ФРИКАМ: скорость " .. math.floor(FreeCam.Speed))
+end
+end,
+OnKeyChanged = function(key)
+pcall(function()
+if key then FreeCamKeys.Fast = key; FC_KEY_FAST = key end
+end)
+end
+})
+fustStep("3c: вкладка Аимбот")
+task.wait() -- 0.49: вдох+метка
+uiStep("Вкладка Аимбот", function()
+Window:Group("Бой")
+AimPage = Window:Page({ Name = "Аимбот", Icon = ICON_COMBAT })
+AimSection = AimPage:Section({ Name = "Аимбот", Tab = "Аимбот", Side = 1 })
+HitboxSection = AimPage:Section({ Name = "Хитбокс", Tab = "Аимбот", Side = 2 })
+TargetSection = AimPage:Section({ Name = "Цель", Tab = "Аимбот", Side = 2 })
+end)
+fustStep("3d: ESP/Визуалы/Лут")
+task.wait() -- 0.49: вдох+метка
+uiStep("Вкладки ESP/Визуалы/Лут", function()
+Window:Group("Визуал")
+EspPage = Window:Page({ Name = "ESP", Icon = ICON_VISUALS })
+EspSection = EspPage:Section({ Name = "ESP", Tab = "ESP", Side = 1 })
+VisFilterSection = EspPage:Section({ Name = "Фильтры", Tab = "Визуалы", Side = 1 })
+WorldSection = EspPage:Section({ Name = "Мир и освещение", Tab = "Визуалы", Side = 1 })
+TracerSection = EspPage:Section({ Name = "Трассеры пуль", Tab = "Визуалы", Side = 2 })
+LootSection = EspPage:Section({ Name = "Мешки с добычей", Tab = "Лут", Side = 1 })
+end)
+-- 0.39v16: yield убран — в v13 без него работало
+fustStep("3b: окно собрано")
+task.wait() -- 0.49: вдох+метка
+print("[FUST] 3/4: интерфейс создан, окно должно быть на экране")
+fustStep("3b: фичи и вкладки")
+task.wait() -- 0.48: вдох после сборки UI
+S = {
+ESP = {
+Enabled = false,
+Box = false,
+Chams = false,
+ChamsTransparency = 0.5,
+Name = false,
+Item = false,
+Distance = false,
+HealthBar = false,
+MaxDistance = 1500,
+DistanceScale = true, 
+TeamCheck = false, 
+VisCheck = false, 
+VisHitbox = false, 
+},
+ESPColors = {
+Box = Color3.fromRGB(0, 255, 255),
+},
+Hitbox = { Enabled = false, Size = 5, Transparency = 0.7 },
+FullBright = false,
+NoDecoration = false,
+NoGrass = false,
+NoFog = false,
+Bullets = { Enabled = false, Style = "Луч", Width = 1.5, Transparency = 0, Fade = 1 },
+NPC = {
+ESP = false,
+CatGuards = true, 
+CatPeaceful = false, 
+CatAnimals = false, 
+CatSleepers = false, 
+DebugLog = false, 
+Box = false,
+Name = false,
+Item = false,
+Distance = false,
+HealthBar = false,
+Chams = false,
+ChamsTransparency = 0.5,
+MaxDistance = 3000,
+HitboxEnabled = false,
+HitboxSize = 5,
+HitboxTransparency = 0.7,
+HitboxAnimals = false, 
+HitboxSleepers = false, 
+},
+HUD = {
+Enabled = true,
+Size = 11, 
+BgTransparency = 0.35, 
+TextTransparency = 0, 
+Corner = "Лево-низ", 
+ShowTPS = true, 
 ShowBg = true, 
 -- 0.39: новые поля
 ColorBg = Color3.fromRGB(12, 12, 16),
@@ -798,7 +1285,8 @@ uiAccum = uiAccum + dt
 if uiAccum >= 0.35 then
 uiAccum = 0
 if hudLineFPS then
-hudLineFPS.Text = "FPS " .. tostring(fpsValue)
+-- 0.49: до первого замера показываем тире, а не ложный 0
+hudLineFPS.Text = (fpsValue and fpsValue > 0) and ("FPS " .. tostring(fpsValue)) or "FPS —"
 end
 if hudLinePing then
 local okP, ping = pcall(function()
@@ -840,6 +1328,7 @@ end
 end
 end))
 end
+fustStep("3d1: HUD")
 UIRegistry.HUDEnabled = HudSection:Toggle({
 Name = "Микро-HUD (FPS, пинг, ТПС, игроки)",
 Flag = "HUDEnabled",
@@ -962,6 +1451,7 @@ pcall(hudEnsure)
 end)
 end
 getgenv().FUST_HUDCleanup = hudDestroy
+fustStep("3d2: секция Лут")
 UIRegistry.LootEnabled = LootSection:Toggle({
 Name = "ESP мешков с добычей (рюкзаки игроков)",
 Flag = "LootEnabled",
@@ -1107,6 +1597,8 @@ end
 })
 LootCSection:Label("Чамсы — это пул из 12 Highlight'ов: подсвечиваются 12 БЛИЖАЙШИХ моделей. Дальний лут не подсвечивается — это плата за FPS на телефоне.")
 -- 0.39v16: yield убран — в v13 без него работало
+fustStep("3e: Боты и НПС")
+task.wait() -- 0.49: вдох+метка
 uiStep("Вкладка Боты и НПС", function()
 BotPage = Window:Page({ Name = "Боты и НПС", Icon = ICON_VISUALS })
 BotEspSection = BotPage:Section({ Name = "ESP ботов", Tab = "Боты", Side = 1 })
@@ -2130,1010 +2622,4 @@ Radius = 500,
 -- 0.39v2: АВТО-СТРЕЛЬБА
 AutoFire = {
 Enabled = false,
-Delay = 0,         -- 0.39v3: задержка 0 = стрелять каждый кадр пока цель жива
-OnlyOnTarget = true, -- стрелять только когда есть цель в FOV
-UntilDead = true,  -- 0.39v3: стрелять пока цель не умрёт
-WallCheck = true,  -- 0.39v4: не стрелять если цель за стеной
-PCKey = nil,        -- не используется (всегда автомат)
-}
-AF_LastShot = 0
-AF_LastTargetPart = nil
-AA_EnemyNear = false 
-AA_NearestDist = nil 
-AIM_PARTS = { "Head", "Torso", "Legs", "Random" }
-AIM_PART_NAMES = { Head = "ГОЛОВА", Torso = "ТЕЛО", Legs = "НОГИ", Random = "РАНДОМ" }
--- 0.39v2: паттерны вертолётов для поиска в Workspace
-HELI_PATTERNS = {
-"вертолет", "вертолёт", "верталёт", "helicopter", "heli", "chopper",
-"боевой вертолет", "combat heli", "attack heli", "military heli",
-"transport heli", "грузовой вертолет", "mi-8", "mi-24", "ka-50", "ka-52",
-"uh-60", "ah-64", "ah-1", "bell", "robinson", "apache", "hind",
-}
-HELI_TAGS = { "FustHeli", "FustVehicle", "FustHelicopter", "Vehicle", "Heli" }
-HELI_FOLDER_NAMES = { "Helicopters", "Vehicles", "Heli", "Helis", "Авиация", "Транспорт" }
-trackedHelis = {} -- кэш найденных вертолётов
-heliScanAt = 0
-function heliScanWorkspace()
-local now = os.clock()
-if now - heliScanAt < 2.0 then return end -- раз в 2с
-heliScanAt = now
-local found = {}
-pcall(function()
--- 1. По тегам CollectionService
-for _, tag in ipairs(HELI_TAGS) do
-local ok, items = pcall(CollectionService.GetTagged, CollectionService, tag)
-if ok and items then
-for _, inst in ipairs(items) do
-if inst:IsA("Model") and inst.Parent then
-table.insert(found, inst)
-end
-end
-end
-end
--- 2. Поиск по папкам
-for _, folder in ipairs(HELI_FOLDER_NAMES) do
-local okF, f = pcall(function()
-return Workspace:FindFirstChild(folder, true)
-end)
-if okF and f then
-for _, d in ipairs(f:GetDescendants()) do
-if d:IsA("Model") then
-table.insert(found, d)
-end
-end
-end
-end
--- 3. Поиск по имени в верхнем уровне Workspace
-for _, d in ipairs(Workspace:GetChildren()) do
-if d:IsA("Model") then
-local okN, name = pcall(function() return string.lower(tostring(d.Name)) end)
-if okN then
-for _, pat in ipairs(HELI_PATTERNS) do
-if string.find(name, pat, 1, true) then
-table.insert(found, d)
-break
-end
-end
-end
-end
-end
-end)
--- дедуп
-local seen = {}
-local unique = {}
-for _, h in ipairs(found) do
-if not seen[h] then
-seen[h] = true
-table.insert(unique, h)
-end
-end
-trackedHelis = unique
-end
-function heliFindAimPart(heli)
--- ищем BodyPart / Seat / Main rotor для прицеливания
-local bestPart = nil
-local bestScore = -math.huge
-pcall(function()
--- приоритет: PilotSeat, DriverSeat, Main, Body, HeliBody
-local priority = { "PilotSeat", "DriverSeat", "Main", "Body", "HeliBody", "Cabin", "Tail", "Rotor", "MainRotor" }
-for _, p in ipairs(heli:GetDescendants()) do
-if p:IsA("BasePart") then
-local name = string.lower(tostring(p.Name))
-local score = 0
-for i, pn in ipairs(priority) do
-if string.find(name, string.lower(pn), 1, true) then
-score = 100 - i
-break
-end
-end
-if score == 0 then score = 10 end -- любой BasePart подходит
-if score > bestScore then
-bestScore = score
-bestPart = p
-end
-end
-end
-end)
-return bestPart
-end
-AimHotkeyObj = nil 
-AimHotkeyBusy = false 
-UIRegistry.AimEnabled = AimSection:Toggle({
-Name = "Аимбот (камера-лок)",
-Flag = "AimEnabled",
-Default = false,
-Callback = function(state)
-Aim.Enabled = state
-if AimHotkeyObj then
-AimHotkeyObj.Toggled = state
-end
-journal("АИМБОТ " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-hasKeyboard = false
-pcall(function()
-hasKeyboard = (UserInputService.KeyboardEnabled == true)
-end)
-if hasKeyboard then
-AimHotkeyBusy = true
-AimHotkeyObj = UIRegistry.AimEnabled:Keybind({
-Flag = "AimHotkey",
-Default = Enum.KeyCode.RightAlt,
-Mode = "Toggle",
-Callback = function(state)
-if AimHotkeyBusy then return end
-if UIRegistry.AimEnabled and UIRegistry.AimEnabled.Set then
-UIRegistry.AimEnabled:Set(state)
-end
-end
-})
-AimHotkeyBusy = false
-UIRegistry.AimHotkey = AimHotkeyObj
-end
-UIRegistry.AimShowFOV = AimSection:Toggle({
-Name = "FOV круг (зеленеет при захвате)",
-Flag = "AimShowFOV",
-Default = false,
-Callback = function(state)
-Aim.ShowFOV = state
-end
-})
-UIRegistry.AimWallCheck = AimSection:Toggle({
-Name = "Проверка стен",
-Flag = "AimWallCheck",
-Default = true,
-Callback = function(state)
-Aim.WallCheck = state
-end
-})
-UIRegistry.AimTeamCheck = AimSection:Toggle({
-Name = "Не целить тимейтов (одна команда)",
-Flag = "AimTeamCheck",
-Default = false,
-Callback = function(state)
-Aim.TeamCheck = state
-end
-})
-UIRegistry.AimCrosshair = AimSection:Toggle({
-Name = "Прицел по центру (CS2-стиль)",
-Flag = "AimCrosshair",
-Default = false,
-Callback = function(state)
-Aim.Crosshair = state
-end
-})
--- 0.39: настройки прицела CS2
-UIRegistry.CHLength = AimSection:Slider({
-Name = "Прицел: длина лучей",
-Flag = "CHLength",
-Default = 7,
-Min = 1,
-Max = 20,
-Decimals = 1,
-Callback = function(v) CH.Length = v end
-})
-UIRegistry.CHThickness = AimSection:Slider({
-Name = "Прицел: толщина",
-Flag = "CHThickness",
-Default = 2,
-Min = 1,
-Max = 5,
-Decimals = 0.5,
-Callback = function(v) CH.Thickness = v end
-})
-UIRegistry.CHGap = AimSection:Slider({
-Name = "Прицел: зазор от центра",
-Flag = "CHGap",
-Default = 5,
-Min = 0,
-Max = 15,
-Decimals = 0.5,
-Callback = function(v) CH.Gap = v end
-})
-UIRegistry.CHDot = AimSection:Toggle({
-Name = "Прицел: точка в центре",
-Flag = "CHDot",
-Default = false,
-Callback = function(state) CH.Dot = state end
-})
-UIRegistry.CHOutline = AimSection:Toggle({
-Name = "Прицел: обводка (чёрная)",
-Flag = "CHOutline",
-Default = true,
-Callback = function(state) CH.Outline = state end
-})
-UIRegistry.CHColor = AimSection:Label("Прицел: цвет"):Colorpicker({
-Name = "Прицел: цвет",
-Flag = "CHColor",
-Default = Color3.fromRGB(255, 30, 30),
-Callback = function(c) CH.Color = c end
-})
--- 0.39v2: расширенные настройки CS2
-UIRegistry.CHTStyle = AimSection:Toggle({
-Name = "Прицел: T-стиль (без верха, как AWP)",
-Flag = "CHTStyle",
-Default = false,
-Callback = function(state) CH.TStyle = state end
-})
-UIRegistry.CHDotSize = AimSection:Slider({
-Name = "Прицел: размер точки",
-Flag = "CHDotSize",
-Default = 1,
-Min = 1,
-Max = 5,
-Decimals = 0.5,
-Callback = function(v) CH.DotSize = v end
-})
-UIRegistry.CHOutlineThickness = AimSection:Slider({
-Name = "Прицел: толщина обводки",
-Flag = "CHOutlineThickness",
-Default = 1,
-Min = 1,
-Max = 3,
-Decimals = 0.5,
-Callback = function(v) CH.OutlineThickness = v end
-})
-UIRegistry.CHAlpha = AimSection:Slider({
-Name = "Прицел: прозрачность (0-1)",
-Flag = "CHAlpha",
-Default = 1,
-Min = 0.1,
-Max = 1,
-Decimals = 0.05,
-Callback = function(v) CH.Alpha = v end
-})
-UIRegistry.CHRecoilFollow = AimSection:Toggle({
-Name = "Прицел: следует за отдачей (CS recoil)",
-Flag = "CHRecoilFollow",
-Default = false,
-Callback = function(state) CH.RecoilFollow = state end
-})
-UIRegistry.AimFOV = AimSection:Slider({
-Name = "FOV радиус",
-Flag = "AimFOV",
-Default = 150,
-Min = 50,
-Max = 400,
-Decimals = 5,
-Suffix = "px",
-Callback = function(Value)
-Aim.FOV = Value
-end
-})
-UIRegistry.AimDistance = AimSection:Slider({
-Name = "Дистанция аима",
-Flag = "AimDistance",
-Default = 500,
-Min = 50,
-Max = 1500,
-Decimals = 10,
-Suffix = "m",
-Callback = function(Value)
-Aim.Distance = Value
-end
-})
-UIRegistry.AimSmooth = AimSection:Slider({
-Name = "Smooth (1 резко — 20 плавно)",
-Flag = "AimSmooth",
-Default = 4,
-Min = 1,
-Max = 20,
-Decimals = 1,
-Callback = function(Value)
-Aim.Smooth = Value
-end
-})
-UIRegistry.AimPrediction = AimSection:Slider({
-Name = "Предикт (упреждение)",
-Flag = "AimPrediction",
-Default = 0.5,
-Min = 0,
-Max = 2,
-Decimals = 0.05,
-Suffix = "с",
-Callback = function(Value)
-Aim.Prediction = Value
-end
-})
-UIRegistry.AimAutoPredict = AimSection:Toggle({
-Name = "Авто-предикт (подстраивается под цель)",
-Flag = "AimAutoPredict",
-Default = false,
-Callback = function(state)
-Aim.AutoPredict = state
-journal("АВТО-ПРЕДИКТ " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AimAutoPredictK = AimSection:Slider({
-Name = "Авто-предикт: коэффициент",
-Flag = "AimAutoPredictK",
-Default = 1,
-Min = 0.2,
-Max = 3,
-Decimals = 0.1,
-Suffix = "x",
-Callback = function(Value)
-Aim.AutoPredictK = Value
-end
-})
-EvilSection = AimPage:Section({ Name = "ЗЛОЙ АИМ — ТЕСТ", Tab = "Аимбот", Side = 1 })
-EvilSection:Label({
-Name = "!! ЭТО ТЕСТ-РЕЖИМ: возможен БАН. Весь риск на тебе !!",
-Color = Color3.fromRGB(255, 64, 64)
-})
-UIRegistry.EvilEnabled = EvilSection:Toggle({
-Name = "ЗЛОЙ АИМ (хитбокс + авторедикт, мгновенно)",
-Flag = "EvilEnabled",
-Default = false,
-Color = Color3.fromRGB(255, 64, 64),
-Callback = function(state)
-Evil.Enabled = state
-if state and not Aim.Enabled and UIRegistry.AimEnabled and UIRegistry.AimEnabled.Set then
-pcall(function()
-UIRegistry.AimEnabled:Set(true)
-end)
-end
-journal("ЗЛОЙ АИМ (ТЕСТ) " .. (state and "ВКЛ — возможен БАН" or "ВЫКЛ"))
-print("[FUST] Злой аим " .. (state and "ВКЛ (ТЕСТ, риск бана)" or "ВЫКЛ"))
-end
-})
-UIRegistry.EvilAutoPred = EvilSection:Toggle({
-Name = "Злой: авто-предикт (скорость + край хитбокса)",
-Flag = "EvilAutoPred",
-Default = true,
-Color = Color3.fromRGB(255, 64, 64),
-Callback = function(state)
-Evil.AutoPred = state
-journal("ЗЛОЙ АИМ: авто-предикт " .. (state and "ВКЛ" or "ВЫКЛ (центр хитбокса)"))
-end
-})
-hasKeyboardEvil = hasKeyboard
-if hasKeyboardEvil then
-EvilPredHotkeyBusy = true
-UIRegistry.EvilPredHotkey = UIRegistry.EvilAutoPred:Keybind({
-Flag = "EvilPredHotkey",
-Default = Enum.KeyCode.P,
-Mode = "Toggle",
-Callback = function(state)
-if EvilPredHotkeyBusy then return end
-if UIRegistry.EvilAutoPred and UIRegistry.EvilAutoPred.Set then
-pcall(function()
-UIRegistry.EvilAutoPred:Set(state)
-end)
-end
-end
-})
-EvilPredHotkeyBusy = false
-end
-UIRegistry.EvilSnipe = EvilSection:Toggle({
-Name = "Меткий таргет (руфкемперы: без FOV, рывок)",
-Flag = "EvilSnipe",
-Default = false,
-Color = Color3.fromRGB(255, 64, 64),
-Callback = function(state)
-Evil.Snipe = state
-journal("ЗЛОЙ АИМ: меткий таргет " .. (state and "ВКЛ (без FOV, цель у прицела)" or "ВЫКЛ"))
-end
-})
-UIRegistry.EvilK = EvilSection:Slider({
-Name = "Злой: сила предикта",
-Flag = "EvilK",
-Default = 1,
-Min = 0.2,
-Max = 3,
-Decimals = 0.1,
-Suffix = "x",
-Callback = function(Value)
-Evil.K = Value
-end
-})
-EvilSection:Label({
-Name = "Хитбокс целится, но видно ТЕЛО: за стеной = не аимим. Стоит — центр, бежит — край.",
-Color = Color3.fromRGB(200, 120, 255)
-})
-AutoAimSection = AimPage:Section({ Name = "Авто-аим (враги рядом)", Tab = "Аимбот", Side = 1 })
-UIRegistry.AutoAimEnabled = AutoAimSection:Toggle({
-Name = "Авто вкл/выкл аима (враги в радиусе)",
-Flag = "AutoAimEnabled",
-Default = false,
-Callback = function(state)
-AutoAim.Enabled = state
-AA_EnemyNear = false 
-journal("АВТО-АИМ " .. (state and "ВКЛ (враг в радиусе включит аимбот сам)" or "ВЫКЛ"))
-print("[FUST] Авто-аим " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AutoAimRadius = AutoAimSection:Slider({
-Name = "Радиус авто-включения",
-Flag = "AutoAimRadius",
-Default = 500,
-Min = 50,
-Max = 2000,
-Decimals = 10,
-Suffix = "m",
-Callback = function(Value)
-AutoAim.Radius = Value
-end
-})
--- 0.39v2: АВТО-СТРЕЛЬБА
-AutoFireSection = AimPage:Section({ Name = "Авто-стрельба", Tab = "Аимбот", Side = 1 })
-UIRegistry.AutoFireEnabled = AutoFireSection:Toggle({
-Name = "Авто-стрельба (когда есть цель)",
-Flag = "AutoFireEnabled",
-Default = false,
-Callback = function(state)
-AutoFire.Enabled = state
-journal("АВТО-СТРЕЛЬБА " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AutoFireDelay = AutoFireSection:Slider({
-Name = "Задержка между выстрелами (0 = макс)",
-Flag = "AutoFireDelay",
-Default = 0,
-Min = 0,
-Max = 0.5,
-Decimals = 0.01,
-Callback = function(v) AutoFire.Delay = v end
-})
-UIRegistry.AutoFireOnlyOnTarget = AutoFireSection:Toggle({
-Name = "Стрелять только при захвате цели",
-Flag = "AutoFireOnlyOnTarget",
-Default = true,
-Callback = function(state) AutoFire.OnlyOnTarget = state end
-})
-UIRegistry.AutoFireUntilDead = AutoFireSection:Toggle({
-Name = "Стрелять пока цель не умрёт",
-Flag = "AutoFireUntilDead",
-Default = true,
-Callback = function(state) AutoFire.UntilDead = state end
-})
-UIRegistry.AutoFireWallCheck = AutoFireSection:Toggle({
-Name = "Не стрелять через стены (WallCheck)",
-Flag = "AutoFireWallCheck",
-Default = true,
-Callback = function(state) AutoFire.WallCheck = state end
-})
-AutoFireSection:Label("ПК: mouse1click / VirtualInputManager. Телефон: Tool:Activate(). Задержка 0 = каждый кадр. WallCheck — не тратит патроны на цели за стеной.")
-RecoilSection = AimPage:Section({ Name = "Анти-отдача и тряска", Tab = "Аимбот", Side = 2 })
-UIRegistry.AntiRecoilEnabled = RecoilSection:Toggle({
-Name = "Анти-отдача",
-Flag = "AntiRecoilEnabled",
-Default = false,
-Callback = function(state)
-AntiRecoil.Enabled = state
-journal("АНТИ-ОТДАЧА " .. (state and "ВКЛ" or "ВЫКЛ"))
-print("[FUST] Анти-отдача " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiRecoilRollback = RecoilSection:Toggle({
-Name = "АО: откат кика камеры",
-Flag = "AntiRecoilRollback",
-Default = true,
-Callback = function(state)
-AntiRecoil.Rollback = state
-journal("АО откат-камеры " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiRecoilOffset = RecoilSection:Toggle({
-Name = "АО: сброс CameraOffset",
-Flag = "AntiRecoilOffset",
-Default = true,
-Callback = function(state)
-AntiRecoil.Offset = state
-journal("АО cameraoffset " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiRecoilThreshold = RecoilSection:Slider({
-Name = "АО: порог кика",
-Flag = "AntiRecoilThreshold",
-Default = 1.2,
-Min = 0.3,
-Max = 5,
-Decimals = 0.1,
-Suffix = "°",
-Callback = function(Value)
-AntiRecoil.Threshold = Value
-end
-})
-UIRegistry.AntiRecoilDrift = RecoilSection:Toggle({
-Name = "АО: компенсация дрифта",
-Flag = "AntiRecoilDrift",
-Default = true,
-Callback = function(state)
-AntiRecoil.Drift = state
-journal("АО дрифт " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiRecoilDriftStrength = RecoilSection:Slider({
-Name = "АО: сила компенсации",
-Flag = "AntiRecoilDriftStrength",
-Default = 1,
-Min = 0.1,
-Max = 1,
-Decimals = 0.05,
-Suffix = "",
-Callback = function(Value)
-AntiRecoil.DriftStrength = Value
-end
-})
-UIRegistry.AntiShakeEnabled = RecoilSection:Toggle({
-Name = "Анти-тряска (выстрел)",
-Flag = "AntiShakeEnabled",
-Default = false,
-Callback = function(state)
-AntiShake.Enabled = state
-journal("АНТИ-ТРЯСКА " .. (state and "ВКЛ" or "ВЫКЛ"))
-print("[FUST] Анти-тряска " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiShakeRoll = RecoilSection:Toggle({
-Name = "АТ: крен (наклон вбок)",
-Flag = "AntiShakeRoll",
-Default = true,
-Callback = function(state)
-AntiShake.Roll = state
-journal("АТ крен " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiShakePosition = RecoilSection:Toggle({
-Name = "АТ: дёрганье позиции",
-Flag = "AntiShakePosition",
-Default = true,
-Callback = function(state)
-AntiShake.Position = state
-journal("АТ позиция " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-UIRegistry.AntiShakeOscillation = RecoilSection:Toggle({
-Name = "АТ: дрожь прицела",
-Flag = "AntiShakeOscillation",
-Default = true,
-Callback = function(state)
-AntiShake.Oscillation = state
-journal("АТ дрожь " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-function AR_DriftPass()
-if not (AntiRecoil.Enabled and AntiRecoil.Drift) then
-AR_LastPitch, AR_DriftFrames, AR_Anchor = nil, 0, nil
-return
-end
-if os.clock() < AR_AimBusyUntil then
-AR_LastPitch, AR_DriftFrames, AR_Anchor = nil, 0, nil
-return
-end
-if os.clock() >= FUST_FireUntil then
-AR_LastPitch, AR_DriftFrames, AR_Anchor = nil, 0, nil
-return
-end
-local camera = Workspace.CurrentCamera
-local myChar = LocalPlayer.Character
-local myTool = myChar and myChar:FindFirstChildOfClass("Tool")
-if not (camera and myTool) then
-AR_LastPitch, AR_DriftFrames, AR_Anchor = nil, 0, nil
-return
-end
-pcall(function()
-local pitch = camera.CFrame.LookVector.Y
-local now = os.clock()
-if AR_LastPitch then
-local d = pitch - AR_LastPitch
-if d < -0.00005 or d > math.rad(2.5) then
-AR_DriftFrames = 0
-AR_Anchor = nil
-elseif d > 0.0001 then
-AR_LastDriftAt = now
-AR_DriftFrames = AR_DriftFrames + 1
-if not AR_Anchor then
-AR_Anchor = pitch - d
-end
-if AR_DriftFrames >= 2 then
-FUST_FireUntil = math.max(FUST_FireUntil, now + 0.35)
-end
-else
-if now - AR_LastDriftAt > 0.25 then
-AR_DriftFrames = 0
-AR_Anchor = nil
-end
-end
-end
-AR_LastPitch = pitch
-if AR_Anchor then
-local err = pitch - AR_Anchor
-if err > 0.0006 then
-local rate = 0.2 + 0.4 * math.clamp(AntiRecoil.DriftStrength, 0, 1)
-local theta = math.asin(math.clamp(err * rate, -1, 1))
-camera.CFrame = camera.CFrame * CFrame.Angles(-theta, 0, 0)
-AR_LastPitch = camera.CFrame.LookVector.Y
-end
-end
-end)
-end
-function FUST_BindFireTool(tool)
-if tool == FUST_FireTool then
-return
-end
-if FUST_FireConns then
-for _, c in ipairs(FUST_FireConns) do
-pcall(function()
-c:Disconnect()
-end)
-end
-end
-FUST_FireConns = nil
-FUST_FireTool = tool
-if not tool then
-FUST_FireUntil = 0
-return
-end
-local conns = {}
-local function markFire()
-if getgenv().FUST_SESSION ~= FUST_SESSION then
-for _, c in ipairs(conns) do
-pcall(function()
-c:Disconnect()
-end)
-end
-return
-end
-FUST_FireUntil = os.clock() + 0.6
-end
-local function markStop()
-if getgenv().FUST_SESSION ~= FUST_SESSION then
-return
-end
-FUST_FireUntil = math.max(FUST_FireUntil, os.clock() + 0.3)
-end
-table.insert(conns, tool.Activated:Connect(markFire))
-table.insert(conns, tool.Deactivated:Connect(markStop))
-FUST_FireConns = conns
-end
-getgenv().FUST_ASCleanup = function()
-if FUST_FireConns then
-for _, c in ipairs(FUST_FireConns) do
-pcall(function()
-c:Disconnect()
-end)
-end
-end
-FUST_FireConns = nil
-FUST_FireTool = nil
-FUST_FireUntil = 0
-end
-function AS_Pass()
-local camera = Workspace.CurrentCamera
-local myChar = LocalPlayer.Character
-local myTool = myChar and myChar:FindFirstChildOfClass("Tool")
-if FreeCam.Enabled then
-AS_LastRawPitch, AS_LastDp, AS_LastDy = nil, nil, nil
-AS_LastLX, AS_LastLZ = nil, nil
-AS_AnchorLook, AS_SmoothPos = nil, nil
-AS_PitchFlips, AS_YawFlips = 0, 0
-return
-end
-if not (AntiShake.Enabled and camera and myTool) then
-AS_LastRawPitch, AS_LastDp, AS_LastDy = nil, nil, nil
-AS_LastLX, AS_LastLZ = nil, nil
-AS_AnchorLook, AS_SmoothPos = nil, nil
-AS_PitchFlips, AS_YawFlips = 0, 0
-return
-end
-local aimBusy = os.clock() < AR_AimBusyUntil
-pcall(function()
-local cf = camera.CFrame
-local look = cf.LookVector
-local pos = cf.Position
-local now = os.clock()
-local firing = now < FUST_FireUntil
-if AntiShake.Roll and firing and math.abs(look.Y) < 0.999 then
-local roll = math.asin(math.clamp(cf.RightVector.Y, -1, 1))
-if math.abs(roll) > math.rad(0.05) then
-camera.CFrame = CFrame.lookAt(pos, pos + look)
-cf = camera.CFrame
-end
-end
-if AntiShake.Position then
-if firing then
-if AS_SmoothPos and (pos - AS_SmoothPos).Magnitude < 1.5 then
-AS_SmoothPos = AS_SmoothPos:Lerp(pos, 0.35)
-camera.CFrame = CFrame.new(AS_SmoothPos) * (cf - cf.Position)
-cf = camera.CFrame
-else
-AS_SmoothPos = pos
-end
-else
-AS_SmoothPos = pos
-end
-else
-AS_SmoothPos = nil
-end
-if AS_LastRawPitch then
-local lx, lz = look.X, look.Z
-local hh = lx * lx + lz * lz
-local dp = look.Y - AS_LastRawPitch
-local dyaw = 0
-if AS_LastLX and hh > 0.04 and (AS_LastLX * AS_LastLX + AS_LastLZ * AS_LastLZ) > 0.04 then
-local cross = lx * AS_LastLZ - lz * AS_LastLX
-dyaw = math.asin(math.clamp(cross / hh, -1, 1))
-end
-if AntiShake.Oscillation and not aimBusy then
-local bandP = math.abs(dp) > 0.0001 and math.abs(dp) < math.rad(2.5)
-local bandY = math.abs(dyaw) > 0.0001 and math.abs(dyaw) < math.rad(2.5)
-local flipP = bandP and AS_LastDp ~= nil and math.abs(AS_LastDp) < math.rad(2.5) and ((dp > 0) ~= (AS_LastDp > 0))
-local flipY = bandY and AS_LastDy ~= nil and math.abs(AS_LastDy) < math.rad(2.5) and ((dyaw > 0) ~= (AS_LastDy > 0))
-if flipP then
-AS_PitchFlips = AS_PitchFlips + 1
-else
-AS_PitchFlips = 0
-end
-if flipY then
-AS_YawFlips = AS_YawFlips + 1
-else
-AS_YawFlips = 0
-end
-if (flipP or flipY) and firing then
-if not AS_AnchorLook then
-local back = cf
-if bandP then
-back = back * CFrame.Angles(-dp, 0, 0)
-end
-if bandY then
-back = back * CFrame.Angles(0, -dyaw, 0)
-end
-AS_AnchorLook = back.LookVector
-end
-AS_LastShakeAt = now
-FUST_FireUntil = math.max(FUST_FireUntil, now + 0.2)
-elseif not bandP and not bandY then
-if now - AS_LastShakeAt > 0.25 then
-AS_AnchorLook = nil
-end
-end
-if AS_AnchorLook and math.abs(AS_AnchorLook.Y) < 0.999 then
-local dotAng = math.acos(math.clamp(cf.LookVector:Dot(AS_AnchorLook), -1, 1))
-if dotAng > math.rad(6) then
-AS_AnchorLook = nil
-elseif dotAng > 0.0006 then
-local target = CFrame.lookAt(cf.Position, cf.Position + AS_AnchorLook)
-camera.CFrame = cf:Lerp(target, 0.55)
-end
-end
-end
-AS_LastDp = dp
-AS_LastDy = dyaw
-end
-local look2 = camera.CFrame.LookVector
-AS_LastRawPitch = look2.Y
-AS_LastLX = look2.X
-AS_LastLZ = look2.Z
-end)
-end
-pcall(function()
-RunService:UnbindFromRenderStep("FUST_AR_Snap")
-RunService:UnbindFromRenderStep("FUST_AR_Restore")
-end)
-RunService:BindToRenderStep("FUST_AR_Snap", Enum.RenderPriority.Camera.Value + 1, function()
-if getgenv().FUST_SESSION ~= FUST_SESSION then
-RunService:UnbindFromRenderStep("FUST_AR_Snap")
-return
-end
-if not (AntiRecoil.Enabled and AntiRecoil.Rollback) then
-return
-end
-local camera = Workspace.CurrentCamera
-if camera then
-AR_SnapCF = camera.CFrame
-end
-end)
-RunService:BindToRenderStep("FUST_AR_Restore", Enum.RenderPriority.Last.Value + 1, function()
-if getgenv().FUST_SESSION ~= FUST_SESSION then
-RunService:UnbindFromRenderStep("FUST_AR_Restore")
-return
-end
-if AntiRecoil.Enabled or AntiShake.Enabled then
-local myChar = LocalPlayer.Character
-FUST_BindFireTool(myChar and myChar:FindFirstChildOfClass("Tool"))
-else
-FUST_BindFireTool(nil)
-end
-AR_DriftPass()
-AS_Pass()
-if not (AntiRecoil.Enabled and AntiRecoil.Rollback) then
-return
-end
-if os.clock() < AR_AimBusyUntil then
-return
-end
-if os.clock() >= FUST_FireUntil + 0.5 then
-return
-end
-local camera = Workspace.CurrentCamera
-if not (camera and AR_SnapCF) then
-return
-end
-pcall(function()
-local cur = camera.CFrame
-local dPos = (cur.Position - AR_SnapCF.Position).Magnitude
-local dUp = cur.LookVector.Y - AR_SnapCF.LookVector.Y
-if dPos < 1 and dUp > math.rad(AntiRecoil.Threshold) then
-camera.CFrame = CFrame.new(cur.Position) * AR_SnapCF.Rotation
-end
-end)
-end)
-AIM_PART_LABELS = {
-["Голова"] = "Head",
-["Тело"] = "Torso",
-["Ноги"] = "Legs",
-["Рандом"] = "Random",
-}
-AIM_PART_TO_LABEL = {
-Head = "Голова",
-Torso = "Тело",
-Legs = "Ноги",
-Random = "Рандом",
-}
-UIRegistry.AimPart = TargetSection:Dropdown({
-Name = "Аим парт",
-Items = { "Голова", "Тело", "Ноги", "Рандом" },
-Default = "Голова",
-Flag = "AimPart",
-Multi = false,
-Callback = function(label)
-Aim.Part = AIM_PART_LABELS[label] or "Head"
-journal("АИМ ПАРТ " .. tostring(Aim.Part))
-end
-})
-UIRegistry.AimPriority = TargetSection:Dropdown({
-Name = "Приоритет",
-Items = { "Прицел", "Дистанция" },
-Default = "Прицел",
-Flag = "AimPriority",
-Multi = false,
-Callback = function(value)
-Aim.Priority = value
-journal("ПРИОРИТЕТ " .. tostring(value))
-end
-})
-UIRegistry.AimTargets = TargetSection:Dropdown({
-Name = "Кого аимить",
-Items = { "Игроки", "Боты и НПС", "Животные", "Слиперы", "Вертолёты" },
-Default = { "Игроки" },
-Flag = "AimTargets",
-Multi = true,
-Callback = function(list)
-local players, npc, animals, sleepers, helis = false, false, false, false, false
-if type(list) == "table" then
-for _, v in ipairs(list) do
-if v == "Игроки" then
-players = true
-elseif v == "Боты и НПС" then
-npc = true
-elseif v == "Животные" then
-animals = true
-elseif v == "Слиперы" then
-sleepers = true
-elseif v == "Вертолёты" then
-helis = true
-end
-end
-end
-Aim.TargetsPlayers = players
-Aim.TargetsNPC = npc
-Aim.TargetsAnimals = animals
-Aim.TargetsSleepers = sleepers
-Aim.TargetsHelis = helis
-local labels = {}
-if players then
-table.insert(labels, "игроки")
-end
-if npc then
-table.insert(labels, "боты/НПС")
-end
-if animals then
-table.insert(labels, "животные")
-end
-if sleepers then
-table.insert(labels, "слиперы")
-end
-if helis then
-table.insert(labels, "вертолёты")
-end
-journal("АИМ ЦЕЛИ: " .. (#labels > 0 and table.concat(labels, " + ") or "никого"))
-end
-})
-if type(Drawing) ~= "table" and type(Drawing) ~= "userdata" then
-local function makeDummyDrawing()
-local dummy = {}
-dummy.Visible = false
-dummy.Color = Color3.new(1, 1, 1)
-dummy.Thickness = 0
-dummy.Filled = false
-dummy.Radius = 0
-dummy.NumSides = 3
-dummy.Text = ""
-dummy.Size = 0
-dummy.Center = false
-dummy.Outline = false
-dummy.Font = 0
-dummy.From = Vector2.new(0, 0)
-dummy.To = Vector2.new(0, 0)
-dummy.Position = Vector2.new(0, 0)
-dummy.Transparency = 1
-function dummy:Remove() end
-return dummy
-end
-Drawing = { new = function() return makeDummyDrawing() end, Fonts = { Plex = 0 } }
-warn("[FUST] Drawing недоступен в этом экзекуторе — ESP/прицел работают вхолостую")
-end
-AIM_FOV_OFF = Color3.fromRGB(150, 0, 20)
-AIM_FOV_ON = Color3.fromRGB(0, 255, 100)
-fovCircle = SafeDrawing("Circle")
-if fovCircle then
-fovCircle.Thickness = 1.5
-fovCircle.NumSides = 64
-fovCircle.Filled = false
-fovCircle.Radius = Aim.FOV
-fovCircle.Color = AIM_FOV_OFF
-fovCircle.Visible = false
-else
-warn("[FUST] Drawing.new(\"Circle\") не создался — FOV-круг отключён, аимбот продолжает работать")
-end
--- 0.39: ПРИЦЕЛ В СТИЛЕ CS2 — настраиваемые длина/толщина/зазор/точка/обводка/цвет
-CH = {
-Gap = 5,        -- зазор от центра
-Length = 7,     -- длина лучей
-Thickness = 2,  -- толщина линий
-Dot = false,    -- точка в центре
-Outline = true, -- обводка (чёрная за цветом)
-Color = Color3.fromRGB(255, 30, 30),
--- 0.39v2: расширенные настройки CS2
-TStyle = false,    -- T-стиль (без верхней линии, как AWP в CS)
-DotSize = 1,       -- размер точки (1-5)
-OutlineThickness = 1, -- толщина обводки (1-3)
-Alpha = 1,         -- прозрачность 0..1
-RecoilFollow = false, -- прицел следует за отдачей (как CS cl_crosshair_recoil)
-}
-CH_GAP, CH_LEN = 5, 7 -- legacy aliases (синхронизируются из CH)
-chLines = {}
-for i = 1, 4 do
-local l = SafeDrawing("Line")
-if l then
-l.Thickness = 2
-l.Color = Color3.fromRGB(255, 30, 30)
-l.Visible = false
-chLines[i] = l
-end
-end
-chDot = SafeDrawing("Circle")
-if chDot then
-chDot.Radius = 1
-chDot.Thickness = 1
-chDot.Filled = true
-chDot.Color = Color3.fromRGB(255, 30, 30)
-chDot.Visible = false
-end
--- обводка: 8 линий вокруг основных (4 направления × 2 смещения)
-chOutline = {}
-for i = 1, 8 do
-local l = SafeDrawing("Line")
-if l then
-l.Thickness = 3
-l.Color = Color3.fromRGB(0, 0, 0)
-l.Visible = false
-chOutline[i] = l
-end
-end
-function updateCrosshair(center, visible)
-local gap = CH.Gap
-local len = CH.Length
-local th = CH.Thickness
-local alpha = CH.Alpha or 1
--- 0.39v2: T-style — верхняя линия не рисуется (как AWP)
--- top (skipped if TStyle)
-if chLines[1] and not CH.TStyle then
-chLines[1].From = Vector2.new(center.X, center.Y - gap)
-chLines[1].To = Vector2.new(center.X, center.Y - gap - len)
-chLines[1].Thickness = th
-chLines[1].Color = CH.Color
-chLines[1].Transparency = 1 - alpha
-chLines[1].Visib
+Delay = 0,         -- 0.39v3: задержка 0 = стрелять каждый кадр �
