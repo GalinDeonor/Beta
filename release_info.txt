@@ -1,0 +1,44 @@
+ПЬЯНЫЙ ПЕТУХ 0.47 — NEVERLOSE UI (полная смена библиотеки)
+
+ПОЧЕМУ: LiquidGlass вешала исполнителя после плашки в 0.44/0.45/0.46.
+Причина — 1.0 МБ библиотека с внутренними сетевыми вызовами и тяжёлым
+парсингом на слабых телефонах. Neverlose UI — 76 КБ, ноль сетевых вызовов.
+
+ЧТО СДЕЛАНО (патчи P1-P14 к Neverlose):
+  P1   Dragify + Touch (drag окна пальцем)
+  P2   безопасный parent: gethui() -> CoreGui -> PlayerGui (pcall)
+  P3   починен Library:Toggle (оригинал звал несуществующий метод)
+  P4   Slider: options.default (стартовое значение) + позиция через
+       InputChanged (палец/мышь) — touch-совместимо
+  P5   Colorpicker: MouseMoved -> UserInputService.InputChanged (touch)
+  P6   ВСЕ элементы возвращают объект Set/Get/SetText/SetVisible/
+       Destroy/Fire — нужно для системы конфигов LoadConfig
+  P7   добавлены элементы Label и Paragraph (в Neverlose не было)
+  P8   Dropdown: режим Multi (галочки, callback получает таблицу) +
+       фикс падения на Default-таблице
+  P9   красная тема бренда (13 замен RGB: синий -> красный FUST)
+  P10  Window возвращает SG/Body/SetVisible для управления
+  P11  Section.Frame наружу — вайтлист-панель и cfgStatus теперь ВИДНЫ
+       (в LiquidGlass-версии они были спрятаны заглушкой!)
+  P12  Keybind: onkeychanged-хук при переназначении клавиши
+  P13  компактные вкладки (11 табов Fust влезают в сайдбар)
+  P14  Keybind default строкой ("RightControl"), не только EnumItem
+  +    deprecated :connect -> :Connect
+
+ПРОВЕРЕНО:
+  - Luau compile OK (11516 строк)
+  - Смоук-тест 17/17: окно, вкладка, секция, все 9 элементов,
+    Toggle Set/Get, Slider default/set, Dropdown single+multi,
+    Button Fire, Keybind, Colorpicker, Textbox, Label, Paragraph,
+    SetOptions, Library:Toggle, SetVisible
+  - 0 внешних запросов в библиотеке (grep: HttpGet/GetObjects/
+    getcustomasset/request/loadstring = 0)
+
+АДАПТЕР: Window/Page/Section/элементы — API Fust сохранён 1:1,
+основное тело скрипта НЕ менялось (только 0.46 -> 0.47).
+
+НОВАЯ МОБИЛЬНАЯ КНОПКА: иконка петуха слева, drag пальцем, тап = меню.
+Хоткей ПК: RightControl (переназначается в настройках).
+
+РАЗМЕР: 422059 байт (5 частей)
+md5: 7d6099e5b155db140e1f63baaca5aebd
