@@ -1,16 +1,19 @@
--- «Пьяный Петух» — универсальный лоадер v4 (Solara / Xeno / Delta / мобильные)
--- v4 для 0.50: библиотека UI снова ВНЕШНЯЯ (neverlose_patched.lua на репо),
--- загрузка скрипта синхронная, без yield — возврат к архитектуре 0.43.
---   1. ВЕСЬ прогресс НА ЭКРАНЕ — красная плашка сверху: что качается,
---      какая попытка, сколько байт. Консоль читать НЕ обязательно.
---   2. Гонка запросов починена: быстрый провал больше не маскируется
---      под 10-секундное ожидание (флаг done вместо сравнения с nil).
---   3. Лоадер НЕ ОТКАЗЫВАЕТСЯ от новой версии репо: увидел 0.50 на репо —
---      скачает и запустит 0.50. (Старые лоадеры 0.46/0.47 с новым репо
---      НЕ работают — обнови лоадер!)
---   4. Ошибки компиляции/запуска — тоже на экране, с текстом ошибки.
+-- «Пьяный Петух» — универсальный лоадер v5 (Solara / Xeno / Delta / мобильные)
+-- v5 для 0.51: ФИКС ФРИЗА НА 4-Й ЧАСТИ.
+--   ДИАГНОЗ 0.50: race() плодил ВИСЯЩИЕ task.spawn с game:HttpGet. Каждый
+--   провал по таймауту оставлял HttpGet живым. К 4-му чанку накапливалось
+--   15-20 висящих сетевых вызовов → движок Delta умирал (фриз).
+--   ФИКС 0.51:
+--     1. УБРАН race() и task.spawn для HTTP. Запрос идёт ОДИН раз через
+--        request({Url=..., Method="GET", Timeout=15}). request() НЕ блокирует
+--        поток и сам возвращает управление по таймауту.
+--     2. Fallback на game:HttpGet БЕЗ task.spawn — если request() нет,
+--        блокирует один раз, не накапливая висящие таски.
+--     3. task.wait(0.4) МЕЖДУ чанками — движок продыхивает, не задыхается.
+--     4. 2 попытки на чанк (вместо 6 в 0.50) — меньше висящего мусора.
+--   Библиотека UI — ВНЕШНЯЯ (neverlose_patched.lua на репо), как в 0.50.
 
-local LOADER_VER = "0.50"
+local LOADER_VER = "0.51"
 local M1 = "https://raw.githubusercontent.com/GalinDeonor/Beta/main/"
 local H = game:GetService("HttpService")
 
@@ -79,53 +82,51 @@ local function fail(t)
     end)
 end
 
--- ==== запрос с гонкой: провал виден сразу, висяк обрезан 8 сек ====
-local function race(fn, sec)
-    local done, result = false, nil
-    task.spawn(function()
-        result = fn()
-        done = true
-    end)
-    local t0 = os.clock()
-    while not done and os.clock() - t0 < (sec or 8) do
-        task.wait(0.1)
-    end
-    return result
+-- ==== запрос: ОДИН request() с Timeout, БЕЗ task.spawn ====
+-- request() на Delta/Solara/Xeno НЕ блокирует поток и сам обрывает по таймауту.
+-- Если request() нет — fallback на game:HttpGet напрямую (без race, без spawn).
+
+local function getReqFn()
+    return request or http_request or (syn and syn.request)
 end
 
-local function tryHttp(u)
-    local ok, r = pcall(game.HttpGet, game, u)
-    if ok and type(r) == "string" and #r > 0 then return r end
+local function fetchOne(u, timeout)
+    timeout = timeout or 15
+    -- Путь 1: request() с таймаутом — НЕ блокирует, сам обрывает
+    local f = getReqFn()
+    if f then
+        local ok, r = pcall(f, { Url = u, Method = "GET", Timeout = timeout })
+        if ok and type(r) == "table" then
+            local body = r.Body or r.body
+            if type(body) == "string" and #body > 0 then return body end
+            -- Если.StatusCode >= 400 — это тоже ответ, не висим
+        end
+        -- request не сработал — внизу fallback на HttpGet
+    end
+    -- Путь 2: game:HttpGet напрямую, БЕЗ task.spawn
+    -- (он блокирует, но один раз — не накапливает висящие таски)
+    local ok, body = pcall(function() return game:HttpGet(u, false) end)
+    if ok and type(body) == "string" and #body > 0 then return body end
     return nil
 end
 
-local function tryReq(u)
-    local f = request or http_request or (syn and syn.request)
-    if not f then return nil end
-    local ok, r = pcall(f, { Url = u, Method = "GET" })
-    if ok and type(r) == "table" then
-        local body = r.Body or r.body
-        if type(body) == "string" and #body > 0 then return body end
-    end
-    return nil
-end
-
+-- 2 попытки на URL, между ними пауза. Никаких висящих тасков.
 local function fetch(u, tries)
-    tries = tries or 3
+    tries = tries or 2
     for i = 1, tries do
-        local body = race(function() return tryHttp(u) end, 8)
+        local body = fetchOne(u, 15)
         if body then return body end
-        body = race(function() return tryReq(u) end, 8)
-        if body then return body end
-        stat("попытка " .. i .. "/" .. tries .. " не прошла, повторяю...")
-        task.wait(0.4)
+        if i < tries then
+            stat("попытка " .. i .. "/" .. tries .. " не прошла, повторяю...")
+            task.wait(0.5)
+        end
     end
     return nil
 end
 
 -- ==== 1. манифест ====
 stat("качаю manifest.json...")
-local mj = fetch(M1 .. "manifest.json", 3)
+local mj = fetch(M1 .. "manifest.json", 2)
 if not mj or #mj < 10 then
     return fail("manifest.json не скачался. Проверь интернет/репозиторий.")
 end
@@ -136,15 +137,16 @@ end
 stat("репо: версия " .. tostring(m.ver) .. ", частей: " .. #m.parts)
 if tostring(m.ver) ~= LOADER_VER then
     stat("ВНИМАНИЕ: лоадер " .. LOADER_VER .. ", на репо " .. tostring(m.ver)
-        .. ". Продолжаю с версией репо (v4 не блокирует).")
-    task.wait(1.5)
+        .. ". Продолжаю с версией репо (v5 не блокирует).")
+    task.wait(1.0)
 end
+task.wait(0.3)  -- продых перед чанками
 
--- ==== 2. части ====
+-- ==== 2. части — с yield МЕЖДУ чанками ====
 local src = ""
 for i = 1, #m.parts do
     stat("качаю часть " .. i .. "/" .. #m.parts .. ": " .. tostring(m.parts[i]) .. "...")
-    local prt = fetch(M1 .. m.parts[i], 3)
+    local prt = fetch(M1 .. m.parts[i], 2)
     local want = m.sizes and m.sizes[i] or 0
     if not prt or #prt < want then
         return fail(string.format("часть %d (%s) битая: %d байт, нужно %d. Перезалей репо.",
@@ -152,8 +154,14 @@ for i = 1, #m.parts do
     end
     src = src .. prt
     stat(string.format("часть %d/%d: %d байт OK", i, #m.parts, #prt))
+    -- КЛЮЧЕВОЙ YIELD: между чанками движок продыхивает.
+    -- В 0.50 этого НЕ было → к 4-му чанку накопилось висящего мусора.
+    if i < #m.parts then
+        task.wait(0.4)
+    end
 end
 stat("все части скачаны (" .. #src .. " байт), проверяю целостность...")
+task.wait(0.3)
 
 -- ==== 3. целостность ====
 if m.total and #src ~= m.total then
