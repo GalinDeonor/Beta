@@ -1,7 +1,17 @@
 --[[
-    ПЬЯНЫЙ ПЕТУХ — FUST Survival 0.49 (v20 Neverlose)
+    ПЬЯНЫЙ ПЕТУХ — FUST Survival 0.50 (v20 Neverlose, внешняя библиотека)
     Скрипт сделан на основе скрипта VOMAGLA (подход к трассерам
     пуль и ESP взят оттуда, спасибо автору VOMAGLA).
+
+    0.50 — ВОЗВРАТ К РАБОЧЕЙ АРХИТЕКТУРЕ 0.43 (последней без фризов):
+    • БИБЛИОТЕКА СНОВА ВНЕШНЯЯ: Neverlose UI грузится loadstring'ом
+      (кеш Petuh/cache_neverlose.lua -> 4 зеркала с таймаутом 8с).
+      Вшивка библиотеки в файл введена в 0.44 — с неё и начались фризы:
+      вшили LiquidGlass (0.44-0.46) — фриз, вшили Neverlose (0.47-0.49)
+      — фриз. Вшили разное — фриз один. Убрана вшивка — убрана причина.
+    • ЗАГРУЗКА СНОВА СИНХРОННАЯ, БЕЗ ЕДИНОГО yield (как v13/v16/0.40-0.43):
+      вдохи nlBreath/uiStep из 0.48 убраны. Счётчик элементов остался.
+    • Вотчдог (диагностика) и все фичи не тронуты.
 
     0.39v16 — возврат к рабочей структуре v13 (фикс зависания Delta):
     • УБРАН task.spawn вокруг pcall — на Delta фоновая корутина
@@ -457,7 +467,7 @@
     19. Аимбот: камера-лок, Smooth, предикт, FOV-круг, стены/команда.
     20. GUI в CoreGui, лог запуска [FUST] 1/4...4/4.
 ]]
-print("[FUST] 1/4: запуск скрипта «Пьяный Петух» 0.49 Neverlose UI...")
+print("[FUST] 1/4: запуск скрипта «Пьяный Петух» 0.50 Neverlose UI (внешняя)...")
 -- ============================================================================
 -- 0.48: БОЛЬШАЯ ПЛАШКА ВЕРСИИ — видна с первой секунды запуска.
 -- ЕСЛИ ЭТОЙ ПЛАШКИ НЕТ НА ЭКРАНЕ — выполняется НЕ этот релиз:
@@ -491,7 +501,7 @@ st.BorderSizePixel = 0
 st.Font = Enum.Font.GothamBold
 st.TextSize = 21
 st.TextColor3 = Color3.fromRGB(255, 225, 225)
-st.Text = "ПЬЯНЫЙ ПЕТУХ 0.49 — ЗАГРУЗКА"
+st.Text = "ПЬЯНЫЙ ПЕТУХ 0.50 — ЗАГРУЗКА"
 st.Parent = fustStampGui
 pcall(function()
 local c = Instance.new("UICorner")
@@ -697,7 +707,7 @@ appendfile(JOURNAL_FILE, stamp .. msg .. "\n")
 end)
 end
 end
-journal("=== ЗАПУСК 0.49 | place " .. tostring(game.PlaceId) .. " | экзекутор: " .. EXECUTOR_NAME .. " | игроков: " .. tostring(#Players:GetPlayers()) .. " ===")
+journal("=== ЗАПУСК 0.50 | place " .. tostring(game.PlaceId) .. " | экзекутор: " .. EXECUTOR_NAME .. " | игроков: " .. tostring(#Players:GetPlayers()) .. " ===")
 -- ============================================================================
 -- 0.48: WATCHDOG. Если инициализация не дошла до «4/4» за 30 секунд —
 -- показываем красный баннер с ТОЧНЫМ шагом зависания вместо вечного молчания.
@@ -778,7 +788,7 @@ t1.Font = Enum.Font.GothamBold
 t1.TextSize = 16
 t1.TextColor3 = Color3.fromRGB(255, 130, 130)
 t1.TextXAlignment = Enum.TextXAlignment.Left
-t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.49 — ЗАВИСЛО (watchdog)"
+t1.Text = "ПЬЯНЫЙ ПЕТУХ 0.50 — ЗАВИСЛО (watchdog)"
 t1.Parent = fr
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0, 100, 0, 24)
@@ -806,776 +816,811 @@ t2.Text = diag .. "\nСкрин этого окна + консоль — в ча
 t2.Parent = fr
 end)
 end)
-print("[FUST] 2/4: UI-библиотека Neverlose вшита в билд (76 КБ), внешних запросов: 0.")
--- 0.48: библиотека вшита как функция (компилируется ОДИН раз со скриптом;
--- строка-источник 1.0 МБ и второй чанк компиляции больше не существуют)
+-- 0.50: БИБЛИОТЕКА БОЛЬШЕ НЕ ВШИТА В СКРИПТ. Вшивка введена в 0.44 — и с 0.44
+-- начались фризы: вшили LiquidGlass (0.44-0.46) — фриз, вшили Neverlose
+-- (0.47-0.49) — фриз. Вшили разное — фриз один. Грузим снаружи, как 0.40-0.43.
+print("[FUST] 2/4: Neverlose UI грузится снаружи (loadstring, архитектура 0.43).")
 
--- 0.48: вшита Neverlose UI (60 КБ исходник + патчи P1-P13).
--- Ни одного внешнего запроса: 0 HttpGet / 0 GetObjects / 0 getcustomasset.
--- Патчи: touch-drag, slider default+touch, colorpicker touch, Multi-dropdown,
--- Label/Paragraph, объекты элементов для конфигов, красная тема бренда.
-local FUST_LG_FN = (function()
-local Library = {}
+Library = (function()
+-- ============================================================================
+-- 0.50: ЯДРО UI = Neverlose UI, ГРУЗИТСЯ СНАРУЖИ (neverlose_patched.lua c
+-- зеркал репо GalinDeonor/Beta; кеш Petuh/cache_neverlose.lua).
+-- Патчи P1-P14 + P13-хаб ввода (4 соединения на библиотеку, без GetMouse).
+-- ============================================================================
 
-local NeverloseVersion = "v1.1A."
+-- прогресс-шаг для watchdog
+local function setProgress(text, color)
+        getgenv().FUST_STEP = text
+        pcall(function()
+                local lt = lwText
+                if lt and lt.Parent then
+                        lt.Text = text
+                        lt.TextColor3 = color or Color3.fromRGB(240, 130, 30)
+                end
+        end)
+end
 
-local TweenService = game:GetService("TweenService")
-local input = game:GetService("UserInputService")
+-- 0.50: ЗАГРУЗКА NEVERLOSE UI СНАРУЖИ (машинерия 0.43 дословно):
+-- кеш -> 4 зеркала с таймаутом 8с. Полностью синхронно, БЕЗ yield в пути успеха.
+local LIB_URLS = {
+    "https://raw.githubusercontent.com/GalinDeonor/Beta/main/neverlose_patched.lua",
+    "https://cdn.jsdelivr.net/gh/GalinDeonor/Beta@main/neverlose_patched.lua",
+    "https://raw.githack.com/GalinDeonor/Beta/main/neverlose_patched.lua",
+    "https://gitcdn.xyz/gh/GalinDeonor/Beta/main/neverlose_patched.lua",
+}
+local CACHE_FILE = "Petuh/cache_neverlose.lua"
 
-local function getRoot()
-    local ok, r = pcall(function()
-        if type(gethui) == "function" then return gethui() end
-        return nil
-    end)
-    if ok and r then return r end
-    local ok2, r2 = pcall(function()
-        return game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
-    end)
-    if ok2 and r2 then return r2 end
+-- HTTP с таймаутом (0.43): request/http_request с явным таймаутом,
+-- фолбэк — game:HttpGet.
+local function httpGetWithTimeout(url, timeoutSec)
+    timeoutSec = timeoutSec or 8
+    local req = request or http_request or (syn and syn.request)
+    if req then
+        local ok, res = pcall(function()
+            return req({ Url = url, Method = "GET", Timeout = timeoutSec * 1000 })
+        end)
+        if ok and type(res) == "table" and res.Body and #res.Body > 1000 then
+            return res.Body
+        end
+    end
+    local ok2, body = pcall(function() return game:HttpGet(url) end)
+    if ok2 and type(body) == "string" and #body > 1000 then
+        return body
+    end
     return nil
 end
-local NL_ROOT = getRoot()
-local NL_SAVED_SG = nil
-if NL_ROOT then
-    for i,v in next, NL_ROOT:GetChildren() do
-        if v:IsA("ScreenGui") and (v.Name == "Neverlose" or v.Name == "FUST_Neverlose") then
-            v:Destroy()
+
+local LG = nil
+-- 1) кеш — повторные запуски мгновенные, без интернета
+local cachedSrc = nil
+pcall(function()
+    if type(isfile) == "function" and isfile(CACHE_FILE) then
+        cachedSrc = readfile(CACHE_FILE)
+    end
+end)
+if type(cachedSrc) == "string" and #cachedSrc > 10000 then
+    setProgress("2/4: Neverlose UI (из кеша)...", Color3.fromRGB(120, 200, 120))
+    local cOk, cResult = pcall(function() return loadstring(cachedSrc)() end)
+    if cOk and type(cResult) == "table" then
+        LG = cResult
+        print("[FUST] 2/4: Neverlose UI из кеша (" .. #cachedSrc .. " байт)")
+    end
+end
+-- 2) зеркала: GitHub + CDN (первый запуск или битый кеш)
+if not LG then
+    for i, url in ipairs(LIB_URLS) do
+        setProgress("2/4: Neverlose UI (зеркало " .. i .. "/" .. #LIB_URLS .. ")...", Color3.fromRGB(240, 180, 60))
+        local body = httpGetWithTimeout(url, 8)
+        if body then
+            local lOk, lResult = pcall(function() return loadstring(body)() end)
+            if lOk and type(lResult) == "table" then
+                LG = lResult
+                print("[FUST] 2/4: Neverlose UI с зеркала " .. i .. " (" .. #body .. " байт)")
+                pcall(function()
+                    if type(writefile) == "function" then
+                        if type(isfolder) == "function" and not isfolder("Petuh") then
+                            pcall(function() makefolder("Petuh") end)
+                        end
+                        writefile(CACHE_FILE, body)
+                    end
+                end)
+                break
+            end
         end
     end
 end
+if not LG then
+    setProgress("2/4: Neverlose UI НЕ загрузился!", Color3.fromRGB(255, 80, 80))
+    print("[FUST] Neverlose UI не загрузился ни с одного зеркала. Залей neverlose_patched.lua в репо GalinDeonor/Beta!")
+    task.wait(1)
+    error("[FUST] Neverlose UI не загрузился. Кеш: " .. tostring(cachedSrc and #cachedSrc or 0) .. " байт. Залей neverlose_patched.lua в репо.")
+end
+setProgress("2/4: Neverlose UI загружен, инициализация...", Color3.fromRGB(120, 200, 120))
 
--- 0.49 P13: ОБЩИЙ ВВОД ДЛЯ ВСЕХ ЭЛЕМЕНТОВ UI.
--- БЫЛО (0.48): каждый слайдер/колорпикер/кейбинд вешал СВОИ глобальные
--- соединения (InputChanged + InputEnded + RenderStepped / InputBegan).
--- При 40+ элементах это 120+ ВЕЧНЫХ колбэков: каждый тап и каждый кадр
--- гнал их все. Плюс GetMouse() в конструкторах мог БЛОКИРОВАТЬ поток до
--- спавна игрока (см. комментарий выше) — итог: FPS 0, игра умирает.
--- СТАЛО: 4 соединения на всю библиотеку, GetMouse не вызывается ВООБЩЕ.
-local NL_HUB_X, NL_HUB_Y = nil, nil
-local NL_SLIDE_FN = nil -- активный слайдер: обновляется каждый кадр
-local NL_PICK_FN = nil  -- активный колорпикер: обновляется при движении пальца
-local NL_KEY_FNS = {}   -- кейбинды: по одной функции на элемент
-local NL_HUB_UIS = game:GetService("UserInputService")
-NL_HUB_UIS.InputChanged:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseMovement
-    or inp.UserInputType == Enum.UserInputType.Touch then
-        NL_HUB_X = inp.Position.X
-        NL_HUB_Y = inp.Position.Y
-        if NL_PICK_FN then
-            local okP = pcall(NL_PICK_FN, NL_HUB_X, NL_HUB_Y)
-            if not okP then NL_PICK_FN = nil end
+-- глобал, который раньше давала старая библиотека
+MathClamp = math.clamp
+
+local Library = {}
+Library.LG = LG
+Library.Version = "0.50-Neverlose"
+Library.MenuKeybind = "RightControl"
+Library.Flags = {}
+Library.SetFlags = {}
+Library.Connections = {}
+
+Library.Folders = {
+        Directory = "Petuh",
+        Configs = "Petuh/Configs",
+        Assets = "Petuh/Assets",
+}
+pcall(function()
+        if type(makefolder) == "function" then
+                if not isfolder("Petuh") then makefolder("Petuh") end
+                if not isfolder("Petuh/Configs") then makefolder("Petuh/Configs") end
         end
-    end
-end)
-NL_HUB_UIS.InputEnded:Connect(function(inp)
-    if inp.UserInputType == Enum.UserInputType.MouseButton1
-    or inp.UserInputType == Enum.UserInputType.Touch
-    or inp.UserInputType == Enum.UserInputType.MouseMovement then
-        NL_SLIDE_FN = nil
-        NL_PICK_FN = nil
-    end
-end)
-game:GetService("RunService").RenderStepped:Connect(function()
-    if NL_SLIDE_FN then
-        local okS = pcall(NL_SLIDE_FN)
-        if not okS then NL_SLIDE_FN = nil end
-    end
-end)
-NL_HUB_UIS.InputBegan:Connect(function(key, focused)
-    if focused then return end
-    for i = 1, #NL_KEY_FNS do
-        if NL_KEY_FNS[i] then pcall(NL_KEY_FNS[i], key) end
-    end
 end)
 
-local function Notify(tt, tx)
-    -- 0.48: SetCore может БЛОКИРОВАТЬ поток до загрузки CoreGui.
-    -- Уведомление уходит отдельным потоком — загрузка зависнуть на нём не может.
-    task.spawn(function()
+-- совместимая таблица темы (красный бренд FUST)
+local ACCENT_RED = Color3.fromRGB(255, 59, 48)
+Library.Theme = {
+        Background = Color3.fromRGB(9, 8, 13),
+        Outline = Color3.fromRGB(15, 23, 36),
+        Inline = Color3.fromRGB(26, 36, 48),
+        Accent = ACCENT_RED,
+        Text = Color3.fromRGB(234, 239, 245),
+        Element = Color3.fromRGB(0, 15, 30),
+}
+
+-- собственный ScreenGui для оверлеев FUST (кнопка-петух, моб. кнопка)
+local function newHolder(name)
+        local gui = Instance.new("ScreenGui")
+        gui.Name = name
+        gui.ResetOnSpawn = false
+        gui.IgnoreGuiInset = true
+        gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+        gui.DisplayOrder = 999999
         pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = tt,
-                Text = tx,
-                Duration = 5
-            })
+                -- 0.49: напрямую в CoreGui не парентим (на части мобильных
+                -- экзекуторов блокирует поток) — только gethui, иначе PlayerGui ниже
+                local parent = (type(gethui) == "function" and gethui()) or nil
+                if parent then gui.Parent = parent end
         end)
-    end)
+        if not gui.Parent then
+                pcall(function()
+                        local P = game:GetService("Players")
+                        local lp = P and P.LocalPlayer
+                        local pg = lp and lp:FindFirstChildOfClass("PlayerGui")
+                        if pg then gui.Parent = pg end
+                end)
+        end
+        return { Instance = gui }
+end
+Library.Holder = newHolder("FUST_Holder")
+Library.UnusedHolder = newHolder("FUST_UnusedHolder")
+
+function Library:Connect(Event, Callback)
+        if not Event or type(Event.Connect) ~= "function" then return nil end
+        local c
+        pcall(function() c = Event:Connect(Callback) end)
+        if c then table.insert(Library.Connections, c) end
+        return c
 end
 
-local function Dragify(frame, parent)
-
-    parent = parent or frame
-
-    local dragging = false
-    local dragInput, mousePos, framePos
-
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            mousePos = input.Position
-            framePos = parent.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    input.InputBegan:Connect(function(i2)
-        if i2.UserInputType == Enum.UserInputType.Touch and dragging then
-            dragInput = i2
-        end
-    end)
-
-    input.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - mousePos
-            parent.Position  = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-        end
-    end)
+function Library:Disconnect(Conn)
+        pcall(function() if Conn and Conn.Disconnect then Conn:Disconnect() end end)
 end
 
-local function round(num, bracket)
-    bracket = bracket or 1
-    local a = math.floor(num/bracket + (math.sign(num) * 0.5)) * bracket
-    if a < 0 then
-        a = a + bracket
-    end
-    return a
-end
-
-local function buttoneffect(options)
-    pcall(function()
-        options.entered.MouseEnter:Connect(function()
-            if options.frame.TextColor3 ~= Color3.fromRGB(234, 239, 246) then
-                TweenService:Create(options.frame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-                    TextColor3 = Color3.fromRGB(234, 239, 245)
-                }):Play()
-            end
+function Library:Unload()
+        for _, c in ipairs(Library.Connections) do
+                pcall(function() c:Disconnect() end)
+        end
+        table.clear(Library.Connections)
+        pcall(function() Library.Holder.Instance:Destroy() end)
+        pcall(function() Library.UnusedHolder.Instance:Destroy() end)
+        pcall(function()
+                if Library.NLWindow and Library.NLWindow.SG then Library.NLWindow.SG:Destroy() end
         end)
-        options.entered.MouseLeave:Connect(function()
-            if options.frame.TextColor3 ~= Color3.fromRGB(157, 171, 182) and options.frame.TextColor3 ~= Color3.fromRGB(234, 239, 246) then
-                TweenService:Create(options.frame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-                    TextColor3 = Color3.fromRGB(157, 171, 182)
-                }):Play()
-            end
+end
+Library.Exit = Library.Unload
+
+-- заглушки совместимости LG (цвета уже вшиты в Neverlose патчем P9)
+Library.LG.SetAccent = function() end
+Library.LG.SetThemeValue = function() end
+Library.LG.Destroy = function()
+        pcall(function()
+                if Library.NLWindow and Library.NLWindow.SG then Library.NLWindow.SG:Destroy() end
         end)
-    end)
 end
+Library.LG.ToggleKey = Enum.KeyCode.RightControl
 
-local function clickEffect(options)
-    options.button.MouseButton1Click:Connect(function()
-        local new = options.button.TextSize - tonumber(options.amount)
-        local revert = new + tonumber(options.amount)
-        TweenService:Create(options.button, TweenInfo.new(0.15, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {TextSize = new}):Play()
-        wait(0.1)
-        TweenService:Create(options.button, TweenInfo.new(0.1, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {TextSize = revert}):Play()
-    end)
-end
-
--- P3: оригинал звал несуществующий метод — чиним через NL_SAVED_SG
-function Library:Toggle(value)
-    if not NL_SAVED_SG then return nil end
-    if type(value) == "boolean" then
-        NL_SAVED_SG.Enabled = value
-    else
-        NL_SAVED_SG.Enabled = not NL_SAVED_SG.Enabled
-    end
-    return NL_SAVED_SG.Enabled
-end
-
-function Library:Window(options)
-    options.text = options.text or "NEVERLOSE"
-
-    local SG = Instance.new("ScreenGui")
-    local Body = Instance.new("Frame")
-    Dragify(Body, Body)
-    local bodyCorner = Instance.new("UICorner")
-
-    local SideBar = Instance.new("Frame")
-    local sidebarCorner = Instance.new("UICorner")
-    local sbLine = Instance.new("Frame")
-
-    local TopBar = Instance.new("Frame")
-    local tbLine = Instance.new("Frame")
-    local Title = Instance.new("TextLabel")
-    --local saveBtn = Instance.new("TextButton")
-    --local saveLabel = Instance.new("ImageLabel")
-
-    local allPages = Instance.new("Frame")
-    local tabContainer = Instance.new("Frame")
-
-    SG.ResetOnSpawn = false
-    SG.Name = "FUST_Neverlose"
-    SG.Parent = NL_ROOT
-    NL_SAVED_SG = SG
-    if not NL_ROOT then
-        local okP, rP = pcall(function()
-            return game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
-        end)
-        if okP and rP then SG.Parent = rP end
-    end
-
-    Body.Name = "Body"
-    Body.Parent = SG
-    Body.AnchorPoint = Vector2.new(0.5, 0.5)
-    Body.BackgroundColor3 = Color3.fromRGB(9, 8, 13)
-    Body.BorderSizePixel = 0
-    Body.Position = UDim2.new(0.475730786, 0, 0.5, 0)
-    Body.Size = UDim2.new(0, 658, 0, 516)
-
-    bodyCorner.CornerRadius = UDim.new(0, 4)
-    bodyCorner.Name = "bodyCorner"
-    bodyCorner.Parent = Body
-
-    SideBar.Name = "SideBar"
-    SideBar.Parent = Body
-    SideBar.BackgroundColor3 = Color3.fromRGB(26, 36, 48)
-    SideBar.BorderSizePixel = 0
-    SideBar.Size = UDim2.new(0, 187, 0, 516)
-
-    sidebarCorner.CornerRadius = UDim.new(0, 4)
-    sidebarCorner.Name = "sidebarCorner"
-    sidebarCorner.Parent = SideBar
-
-    sbLine.Name = "sbLine"
-    sbLine.Parent = SideBar
-    sbLine.BackgroundColor3 = Color3.fromRGB(15, 23, 36)
-    sbLine.BorderSizePixel = 0
-    sbLine.Position = UDim2.new(0.99490571, 0, 0, 0)
-    sbLine.Size = UDim2.new(0, 3, 0, 516)
-
-    TopBar.Name = "TopBar"
-    TopBar.Parent = Body
-    TopBar.BackgroundColor3 = Color3.fromRGB(9, 8, 13)
-    TopBar.BackgroundTransparency = 1.000
-    TopBar.BorderColor3 = Color3.fromRGB(14, 21, 32)
-    TopBar.BorderSizePixel = 0
-    TopBar.Position = UDim2.new(0.25166446, 0, 0, 0)
-    TopBar.Size = UDim2.new(0, 562, 0, 49)
-
-    tbLine.Name = "tbLine"
-    tbLine.Parent = TopBar
-    tbLine.BackgroundColor3 = Color3.fromRGB(15, 23, 36)
-    tbLine.BorderSizePixel = 0
-    tbLine.Position = UDim2.new(0.0400355868, 0, 1, 0)
-    tbLine.Size = UDim2.new(0, 469, 0, 3)
-
-    Title.Name = "Title"
-    Title.Parent = SideBar
-    Title.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-    Title.BackgroundTransparency = 1.000
-    Title.BorderSizePixel = 0
-    Title.Position = UDim2.new(0.0614973232, 0, 0.0213178284, 0)
-    Title.Size = UDim2.new(0, 162, 0, 26)
-    Title.Font = Enum.Font.ArialBold
-    Title.Text = options.text
-    Title.TextColor3 = Color3.fromRGB(234, 239, 245)
-    Title.TextSize = 28.000
-    Title.TextWrapped = true
-
-    --[[saveBtn.Name = "saveBtn"
-    saveBtn.Parent = TopBar
-    saveBtn.AnchorPoint = Vector2.new(0.5, 0.5)
-    saveBtn.BackgroundColor3 = Color3.fromRGB(9, 8, 13)
-    saveBtn.Position = UDim2.new(0.146918148, 0, 0.479591846, 0)
-    saveBtn.Size = UDim2.new(0, 88, 0, 20)
-    saveBtn.AutoButtonColor = false
-    saveBtn.Font = Enum.Font.GothamBold
-    saveBtn.Text = "   Save"
-    saveBtn.TextColor3 = Color3.fromRGB(132, 146, 153)
-    saveBtn.TextSize = 14.000
-
-    saveLabel.Name = "saveLabel"
-    saveLabel.Parent = saveBtn
-    saveLabel.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-    saveLabel.BackgroundTransparency = 1.000
-    saveLabel.BorderSizePixel = 0
-    saveLabel.Position = UDim2.new(0.0862553269, 0, 0.0500000007, 0)
-    saveLabel.Size = UDim2.new(0, 18, 0, 18)
-    saveLabel.Image = "rbxassetid://7999984136"
-    saveLabel.ImageColor3 = Color3.fromRGB(132, 146, 153)
-    ]]
-
-    allPages.Name = "allPages"
-    allPages.Parent = Body
-    allPages.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-    allPages.BackgroundTransparency = 1.000
-    allPages.BorderSizePixel = 0
-    allPages.Position = UDim2.new(0.29508087, 0, 0.100775197, 0)
-    allPages.Size = UDim2.new(0, 463, 0, 464)
-
-    tabContainer.Name = "tabContainer"
-    tabContainer.Parent = SideBar
-    tabContainer.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-    tabContainer.BackgroundTransparency = 1.000
-    tabContainer.BorderSizePixel = 0
-    tabContainer.Position = UDim2.new(0, 0, 0.100775197, 0)
-    tabContainer.Size = UDim2.new(0, 187, 0, 464)
-
-    local tabsections = {}
-
-    -- P10: наружу — управление окном
-    tabsections.SG = SG
-    tabsections.Body = Body
-    tabsections.SideBar = SideBar
-    tabsections.Library = Library
-    tabsections.SetTitle = function(_, t)
-        pcall(function() Title.Text = tostring(t or "") end)
-    end
-    tabsections.SetVisible = function(_, b)
-        pcall(function() SG.Enabled = b and true or false end)
-    end
-
-    function tabsections:TabSection(options)
-        options.text = options.text or "Tab Section"
-
-        local tabLayout = Instance.new("UIListLayout")
-        local tabSection = Instance.new("Frame")
-        local tabSectionLabel = Instance.new("TextLabel")
-        local tabSectionLayout = Instance.new("UIListLayout")
-
-        tabLayout.Name = "tabLayout"
-        tabLayout.Parent = tabContainer
-
-        tabSection.Name = "tabSection"
-        tabSection.Parent = tabContainer
-        tabSection.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-        tabSection.BackgroundTransparency = 1.000
-        tabSection.BorderSizePixel = 0
-        tabSection.Size = UDim2.new(0, 189, 0, options.text == "" and 4 or 22)
-
-        local function ResizeTS(num)
-            tabSection.Size += UDim2.new(0, 0, 0, num)
+-- ================= утилиты =================
+local function normKey(k)
+        if typeof(k) == "EnumItem" then return k end
+        if type(k) == "string" then
+                local name = string.match(k, "%.([%w]+)$") or k
+                if Enum.KeyCode[name] then return Enum.KeyCode[name] end
         end
+        return k
+end
 
-        tabSectionLabel.Name = "tabSectionLabel"
-        tabSectionLabel.Parent = tabSection
-        tabSectionLabel.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-        tabSectionLabel.BackgroundTransparency = 1.000
-        tabSectionLabel.BorderSizePixel = 0
-        tabSectionLabel.Size = UDim2.new(0, 190, 0, 22)
-        tabSectionLabel.Font = Enum.Font.Gotham
-        tabSectionLabel.Text = "     ".. options.text
-        tabSectionLabel.TextColor3 = Color3.fromRGB(79, 107, 126)
-        tabSectionLabel.TextSize = 13.000
-        tabSectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-        tabSectionLabel.Visible = options.text ~= ''
-
-        tabSectionLayout.Name = "tabSectionLayout"
-        tabSectionLayout.Parent = tabSection
-        tabSectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        tabSectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        tabSectionLayout.Padding = UDim.new(0, 7)
-
-        local tabs = {}
-
-        function tabs:Tab(options)
-            options.text = options.text or "New Tab"
-            options.icon = options.icon or "rbxassetid://7999345313"
-
-            local tabButton = Instance.new("TextButton")
-            local tabButtonCorner = Instance.new("UICorner")
-            local tabIcon = Instance.new("ImageLabel")
-
-            local newPage = Instance.new("ScrollingFrame")
-            local pageLayout = Instance.new("UIGridLayout")
-
-            tabButton.Name = "tabButton"
-            tabButton.Parent = tabSection
-            tabButton.BackgroundColor3 = Color3.fromRGB(78, 22, 18)
-            tabButton.BorderSizePixel = 0
-            tabButton.Position = UDim2.new(0.0714285746, 0, 0.402777791, 0)
-            tabButton.Size = UDim2.new(0, 165, 0, 26)
-            tabButton.AutoButtonColor = false
-            tabButton.Font = Enum.Font.GothamSemibold
-            tabButton.Text = "        " .. options.text
-            tabButton.TextColor3 = Color3.fromRGB(234, 239, 245)
-            tabButton.TextSize = 13.000
-            tabButton.BackgroundTransparency = 1
-            tabButton.TextXAlignment = Enum.TextXAlignment.Left
-            tabButton.MouseButton1Click:Connect(function()
-                for i,v in next, allPages:GetChildren() do
-                    v.Visible = false
+local function colorFrom(v)
+        if typeof(v) == "Color3" then return v end
+        if type(v) == "string" then
+                local s = (v:sub(1, 1) == "#") and v or ("#" .. v)
+                local ok, c = pcall(Color3.fromHex, s)
+                if ok and c then return c end
+        elseif type(v) == "table" then
+                if (v[1] or 0) > 1 or (v[2] or 0) > 1 or (v[3] or 0) > 1 then
+                        return Color3.fromRGB(v[1] or 255, v[2] or 255, v[3] or 255)
                 end
+                return Color3.new(v[1] or 1, v[2] or 1, v[3] or 1)
+        end
+        return Color3.fromRGB(255, 255, 255)
+end
 
-                newPage.Visible = true
+local function pushFlag(w, flag, value)
+        if flag and flag ~= "" then
+                Library.Flags[flag] = value
+                Library.SetFlags[flag] = w
+        end
+end
 
-                for i,v in next, SideBar:GetDescendants() do
-                    if v:IsA("TextButton") then
-                        TweenService:Create(v, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-                            BackgroundTransparency = 1
-                        }):Play()
-                    end
-                end
+-- конструкторы прикреплённых элементов (объявлены заранее для замыканий)
+local makeColorpicker, makeKeybind
 
-                TweenService:Create(tabButton, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-                    BackgroundTransparency = 0
-                }):Play()
-            end)
+-- ================= обёртка элемента =================
+local function wrapElement(nlObj, nlSec, kind, data)
+        data = data or {}
+        local flag = data.Flag
+        local w
+        w = {
+                Obj = nlObj,
+                Section = nlSec,
+                Kind = kind,
+                Title = data.Name or data.Title or "",
+                Value = nil,
+                Key = nil,
+                Color = nil,
+        }
 
-            tabButtonCorner.CornerRadius = UDim.new(0, 4)
-            tabButtonCorner.Name = "tabButtonCorner"
-            tabButtonCorner.Parent = tabButton
-
-            tabIcon.Name = "tabIcon"
-            tabIcon.Parent = tabButton
-            tabIcon.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-            tabIcon.BackgroundTransparency = 1.000
-            tabIcon.BorderSizePixel = 0
-            tabIcon.Position = UDim2.new(0.0408859849, 0, 0.133333355, 0)
-            tabIcon.Size = UDim2.new(0, 16, 0, 16)
-            tabIcon.Image = options.icon
-            tabIcon.ImageColor3 = Color3.fromRGB(255, 99, 88)
-
-            newPage.Name = "newPage"
-            newPage.Parent = allPages
-            newPage.Visible = false
-            newPage.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-            newPage.BackgroundTransparency = 1.000
-            newPage.BorderSizePixel = 0
-            newPage.ClipsDescendants = false
-            newPage.Position = UDim2.new(0.021598272, 0, 0.0237068962, 0)
-            newPage.Size = UDim2.new(0, 442, 0, 440)
-            newPage.ScrollBarThickness = 4
-            newPage.CanvasSize = UDim2.new(0,0,0,0)
-
-            pageLayout.Name = "pageLayout"
-            pageLayout.Parent = newPage
-            pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-            pageLayout.CellPadding = UDim2.new(0, 12, 0, 12)
-            pageLayout.CellSize = UDim2.new(0, 215, 0, -10)
-            pageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-                newPage.CanvasSize = UDim2.new(0,0,0,pageLayout.AbsoluteContentSize.Y) 
-            end)
-
-            ResizeTS(33)
-
-            local sections = {}
-
-            function sections:Section(options)
-                options.text = options.text or "Section"
-
-                local sectionFrame = Instance.new("Frame")
-                local sectionLabel = Instance.new("TextLabel")
-                local sectionFrameCorner = Instance.new("UICorner")
-                local sectionLayout = Instance.new("UIListLayout")
-                local sLine = Instance.new("TextLabel")
-                local sectionSizeConstraint = Instance.new("UISizeConstraint")
-
-                sectionFrame.Name = "sectionFrame"
-                sectionFrame.Parent = newPage
-                sectionFrame.BackgroundColor3 = Color3.fromRGB(0, 15, 30)
-                sectionFrame.BorderSizePixel = 0
-                sectionFrame.Size = UDim2.new(0, 215, 0, 134)
-
-                sectionLabel.Name = "sectionLabel"
-                sectionLabel.Parent = sectionFrame
-                sectionLabel.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-                sectionLabel.BackgroundTransparency = 1.000
-                sectionLabel.BorderSizePixel = 0
-                sectionLabel.Position = UDim2.new(0.0121902823, 0, 0, 0)
-                sectionLabel.Size = UDim2.new(0, 213, 0, 25)
-                sectionLabel.Font = Enum.Font.GothamSemibold
-                sectionLabel.Text = "   " .. options.text
-                sectionLabel.TextColor3 = Color3.fromRGB(234, 239, 245)
-                sectionLabel.TextSize = 14.000
-                sectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-                sectionFrameCorner.CornerRadius = UDim.new(0, 4)
-                sectionFrameCorner.Name = "sectionFrameCorner"
-                sectionFrameCorner.Parent = sectionFrame
-
-                sectionLayout.Name = "sectionLayout"
-                sectionLayout.Parent = sectionFrame
-                sectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-                sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-                sectionLayout.Padding = UDim.new(0, 2)
-
-                sLine.Name = "sLine"
-                sLine.Parent = sectionFrame
-                sLine.BackgroundColor3 = Color3.fromRGB(13, 28, 44)
-                sLine.BorderSizePixel = 0
-                sLine.Position = UDim2.new(0.0255813953, 0, 0.41538462, 0)
-                sLine.Size = UDim2.new(0, 202, 0, 3)
-                sLine.Font = Enum.Font.SourceSans
-                sLine.Text = ""
-                sLine.TextColor3 = Color3.fromRGB(0, 0, 0)
-                sLine.TextSize = 0
-
-                sectionSizeConstraint.Name = "sectionSizeConstraint"
-                sectionSizeConstraint.Parent = sectionFrame
-                sectionSizeConstraint.MinSize = Vector2.new(215, 35)
-
-                local function Resize(num)
-                    sectionSizeConstraint.MinSize += Vector2.new(0, num)
-                end
-
-                local elements = {}
-                elements.Frame = sectionFrame
-
-                function elements:Button(options)
-                    if not options.text or not options.callback then Notify("Button", "Missing arguments!") return end
-
-                    local TextButton = Instance.new("TextButton")
-
-                    TextButton.Parent = sectionFrame
-                    TextButton.BackgroundColor3 = Color3.fromRGB(78, 22, 18)
-                    TextButton.BorderSizePixel = 0
-                    TextButton.Position = UDim2.new(0.0348837227, 0, 0.355555564, 0)
-                    TextButton.Size = UDim2.new(0, 200, 0, 22)
-                    TextButton.AutoButtonColor = false
-                    TextButton.Text = options.text
-                    TextButton.Font = Enum.Font.Gotham
-                    TextButton.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    TextButton.TextSize = 14.000
-                    TextButton.BackgroundTransparency = 1
-                    buttoneffect({frame = TextButton, entered = TextButton})
-                    clickEffect({button = TextButton, amount = 5})
-                    TextButton.MouseButton1Click:Connect(function()
-                        options.callback()
-                    end)
-
-                    Resize(25)
-                    -- P6: объект кнопки
-                    local self = {}
-                    function self:Fire() options.callback() end
-                    self.Instance = TextButton
-                    return self
-                end
-
-                function elements:Toggle(options)
-                    if not options.text or not options.callback then Notify("Toggle", "Missing arguments!") return end
-
-                    local toggleLabel = Instance.new("TextLabel")
-                    local toggleFrame = Instance.new("TextButton")
-                    local togFrameCorner = Instance.new("UICorner")
-                    local toggleButton = Instance.new("TextButton")
-                    local togBtnCorner = Instance.new("UICorner")
-
-                    local State = options.state or false
-
-                    if options.state then
-                        toggleButton.Position = UDim2.new(0.74, 0, 0.5, 0)
-                        toggleLabel.TextColor3 = Color3.fromRGB(234, 239, 246)
-                        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
-                        toggleFrame.BackgroundColor3 = Color3.fromRGB(51, 12, 10)
-                    end
-
-                    toggleLabel.Name = "toggleLabel"
-                    toggleLabel.Parent = sectionFrame
-                    toggleLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
-                    toggleLabel.BackgroundTransparency = 1.000
-                    toggleLabel.Position = UDim2.new(0.0348837227, 0, 0.965517223, 0)
-                    toggleLabel.Size = UDim2.new(0, 200, 0, 22)
-                    toggleLabel.Font = Enum.Font.Gotham
-                    toggleLabel.Text = " " .. options.text
-                    toggleLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    toggleLabel.TextSize = 14.000
-                    toggleLabel.TextXAlignment = Enum.TextXAlignment.Left
-                    buttoneffect({frame = toggleLabel, entered = toggleLabel})
-
-                    local function PerformToggle()
-                        State = not State
-                        options.callback(State)
-                        TweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            Position = State and UDim2.new(0.74, 0, 0.5, 0) or UDim2.new(0.25, 0, 0.5, 0)
-                        }):Play()
-                        TweenService:Create(toggleLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            TextColor3 = State and Color3.fromRGB(234, 239, 246) or Color3.fromRGB(157, 171, 182)
-                        }):Play()
-                        TweenService:Create(toggleButton, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            BackgroundColor3 = State and Color3.fromRGB(255, 59, 48) or Color3.fromRGB(77, 77, 77)
-                        }):Play()
-                        TweenService:Create(toggleFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            BackgroundColor3 = State and Color3.fromRGB(51, 12, 10) or Color3.fromRGB(4, 4, 11)
-                        }):Play()
-                    end
-
-                    toggleFrame.Name = "toggleFrame"
-                    toggleFrame.Parent = toggleLabel
-                    toggleFrame.BackgroundColor3 = Color3.fromRGB(4, 4, 11)
-                    toggleFrame.BorderSizePixel = 0
-                    toggleFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-                    toggleFrame.Position = UDim2.new(0.9, 0, 0.5, 0)
-                    toggleFrame.Size = UDim2.new(0, 38, 0, 18)
-                    toggleFrame.AutoButtonColor = false
-                    toggleFrame.Font = Enum.Font.SourceSans
-                    toggleFrame.Text = ""
-                    toggleFrame.TextColor3 = Color3.fromRGB(0, 0, 0)
-                    toggleFrame.TextSize = 14.000
-                    toggleFrame.MouseButton1Click:Connect(function()
-                        PerformToggle()
-                    end)
-
-                    togFrameCorner.CornerRadius = UDim.new(0, 50)
-                    togFrameCorner.Name = "togFrameCorner"
-                    togFrameCorner.Parent = toggleFrame
-
-                    toggleButton.Name = "toggleButton"
-                    toggleButton.Parent = toggleFrame
-                    toggleButton.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
-                    toggleButton.BorderSizePixel = 0
-                    toggleButton.AnchorPoint = Vector2.new(0.5, 0.5)
-                    toggleButton.Position = UDim2.new(0.25, 0, 0.5, 0)
-                    toggleButton.Size = UDim2.new(0, 16, 0, 16)
-                    toggleButton.AutoButtonColor = false
-                    toggleButton.Font = Enum.Font.SourceSans
-                    toggleButton.Text = ""
-                    toggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-                    toggleButton.TextSize = 14.000
-                    toggleButton.MouseButton1Click:Connect(function()
-                        PerformToggle()
-                    end)
-
-                    togBtnCorner.CornerRadius = UDim.new(0, 50)
-                    togBtnCorner.Name = "togFrameCorner"
-                    togBtnCorner.Parent = toggleButton
-
-                    Resize(25)
-                    -- P6: возвращаем объект для конфигов
-                    local self = {}
-                    function self:Set(v, silent)
-                        v = v and true or false
-                        if v == State then return end
-                        State = v
-                        if not silent then options.callback(State) end
-                        TweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            Position = State and UDim2.new(0.74, 0, 0.5, 0) or UDim2.new(0.25, 0, 0.5, 0)
-                        }):Play()
-                        TweenService:Create(toggleLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            TextColor3 = State and Color3.fromRGB(234, 239, 246) or Color3.fromRGB(157, 171, 182)
-                        }):Play()
-                        TweenService:Create(toggleButton, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            BackgroundColor3 = State and Color3.fromRGB(255, 59, 48) or Color3.fromRGB(77, 77, 77)
-                        }):Play()
-                        TweenService:Create(toggleFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            BackgroundColor3 = State and Color3.fromRGB(51, 12, 10) or Color3.fromRGB(4, 4, 11)
-                        }):Play()
-                    end
-                    function self:Get() return State end
-                    self.Value = function() return State end
-                    self.Instance = toggleLabel
-                    return self
-                end
-
-                function elements:Slider(options)
-                    if not options.text or not options.min or not options.max or not options.callback then Notify("Slider", "Missing arguments!") return end
-
-                    local Slider = Instance.new("Frame")
-                    local sliderLabel = Instance.new("TextLabel")
-                    local sliderFrame = Instance.new("TextButton")
-                    local sliderBall = Instance.new("TextButton")
-                    local sliderBallCorner = Instance.new("UICorner")
-                    local sliderTextBox = Instance.new("TextBox")
-                    buttoneffect({frame = sliderLabel, entered = Slider})
-
-                    local Value
-
-                    local UIS = game:GetService("UserInputService")
-
-                    local percentage = 0
-                    local step = 0.01
-                    -- 0.49 P13: позицию пальца/мыши даёт общий хаб (NL_HUB_X)
-
-                    local function snap(number, factor)
-                        if factor == 0 then
-                            return number
+        function w:Set(v, silent)
+                pcall(function()
+                        if kind == "keybind" then
+                                v = normKey(v)
+                                if w.Obj and w.Obj.Set then w.Obj:Set(v) end
+                                w.Key = v
+                                pushFlag(w, flag, { Key = tostring(v), Mode = data.Mode or "Toggle" })
+                        elseif kind == "color" then
+                                v = colorFrom(v)
+                                if w.Obj and w.Obj.Set then w.Obj:Set(v, silent) end
+                                w.Color = v
+                                pushFlag(w, flag, { Color = "#" .. v:ToHex() })
+                        elseif kind == "label" then
+                                if w.Obj and w.Obj.SetText then w.Obj:SetText(tostring(v)) end
+                                w.Value = v
+                                pushFlag(w, flag, v)
+                        elseif kind == "paragraph" then
+                                if type(v) == "table" then
+                                        if w.Obj and w.Obj.Set then w.Obj:Set(v) end
+                                else
+                                        if w.Obj and w.Obj.Set then w.Obj:Set({ Content = tostring(v) }) end
+                                end
+                                w.Value = v
+                                pushFlag(w, flag, v)
                         else
-                            return math.floor(number/factor+0.5)*factor
+                                if w.Obj and w.Obj.Set then w.Obj:Set(v, silent) end
+                                w.Value = v
+                                pushFlag(w, flag, v)
                         end
-                    end
+                end)
+        end
 
-                    -- 0.49 P13: обновление слайдера — одна функция на элемент,
-                    -- крутит общий хаб, пока палец зажат
-                    local function sliderUpdate()
-                        local BtnPos = sliderBall.Position
-                        local MousePos = NL_HUB_X or UIS:GetMouseLocation().X
-                        local FrameSize = sliderFrame.AbsoluteSize.X
-                        local FramePos = sliderFrame.AbsolutePosition.X
-                        local pos = snap((MousePos-FramePos)/FrameSize,step)
-                        percentage = math.clamp(pos,0,0.9)
+        function w:SetText(t)
+                pcall(function() if w.Obj and w.Obj.SetText then w.Obj:SetText(tostring(t)) end end)
+                w.Title = t
+        end
+        w.SetTitle = w.SetText
 
-                        Value = ((((tonumber(options.max) - tonumber(options.min)) / 0.9) * percentage)) + tonumber(options.min)
-                        Value = round(Value, options.float)
-                        Value = math.clamp(Value, options.min, options.max)
-                        sliderTextBox.Text = Value
-                        options.callback(Value)
-                        sliderBall.Position = UDim2.new(percentage,0,BtnPos.Y.Scale, BtnPos.Y.Offset)
-                    end
-
-                    Slider.Name = "Slider"
-                    Slider.Parent = sectionFrame
-                    Slider.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
-                    Slider.BackgroundTransparency = 1.000
-                    Slider.Position = UDim2.new(0.0395348854, 0, 0.947335422, 0)
-                    Slider.Size = UDim2.new(0, 200, 0, 22)
-
-                    sliderLabel.Name = "sliderLabel"
-                    sliderLabel.Parent = Slider
-                    sliderLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-                    sliderLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
-                    sliderLabel.BackgroundTransparency = 1.000
-                    sliderLabel.Position = UDim2.new(0.2, 0, 0.5, 0)
-                    sliderLabel.Size = UDim2.new(0, 77, 0, 22)
-                    sliderLabel.Font = Enum.Font.Gotham
-                    sliderLabel.Text = " " .. options.text
-                    sliderLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    sliderLabel.TextSize = 14.000
-                    sliderLabel.TextXAlignment = Enum.TextXAlignment.Left
-                    sliderLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
-                        if sliderLabel.TextBounds.X > 75 then
-                            sliderLabel.TextScaled = true
-                        else
-                            sliderLabel.TextScaled = false
+        function w:SetVisible(b)
+                pcall(function()
+                        if w.Obj and w.Obj.SetVisible then
+                                w.Obj:SetVisible(b)
+                        elseif w.Obj and w.Obj.Instance then
+                                w.Obj.Instance.Visible = b and true or false
                         end
-                    end)
+                end)
+        end
 
-                    sliderFrame.Name = "sliderFrame"
-                    sliderFrame.Parent = sliderLabel
-                    sliderFrame.BackgroundColor3 = Color3.fromRGB(110, 34, 28)
-                    sliderFrame.BorderSizePixel = 0
-                    sliderFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-                    sliderFrame.Position = UDim2.new(1.6, 0, 0.5, 0)
-                    sliderFrame.Size = UDim2.new(0, 72, 0, 2)
-                    sliderFrame.Text = ""
-                    sliderFrame.AutoButtonColor = false
-                    sliderFrame.MouseButton1Down:Connect(function()
-                        NL_SLIDE_FN = sliderUpdate
-                    end)
+        function w:Destroy()
+                pcall(function()
+                        if w.Obj and w.Obj.Destroy then
+                                w.Obj:Destroy()
+                        elseif w.Obj and w.Obj.Instance then
+                                w.Obj.Instance:Destroy()
+                        end
+                end)
+        end
 
-                    sliderBall.Name = "sliderBall"
-                    sliderBall.Parent = sliderFrame
-                    sliderBall.AnchorPoint = Vector2.new(0.5, 0.5)
-                    sliderBall.BackgroundColor3 = Color3.fromRGB(255, 94, 84)
-                    sliderBall.BorderSizePixel = 0
-                    sliderBall.Position = UDim2.new(0, 0, 0.5, 0)
-                    sliderBall.Size = UDim2.new(0, 14, 0, 14)
-                    sliderBall.AutoButtonColor = false
-                    sliderBall.Font = Enum.Font.SourceSans
-                    sliderBall.Text = ""
-                    sliderBall.TextColor3 = Color3.fromRGB(0, 0, 0)
-                    sliderBall.TextSize = 14.000
-                    sliderBall.MouseButton1Down:Connect(function()
-                        NL_SLIDE_FN = sliderUpdate
-                    end)
+        function w:Fire()
+                pcall(function() if w.Obj and w.Obj.Fire then w.Obj:Fire() end end)
+        end
 
-                    local function setByValue(v, silent)
-                        v = tonumber(v) or options.min
-                        v = math.clamp(v, options.min, options.max)
-                        Value = v
-                        percentage = math.clamp((v - options.min) / ((options.max - options.min) / 0.9), 0, 0.9)
-                        sliderTextBox.Text = tostring(Value)
-                        sliderBall.Position = UDim2.new(percentage, 0, 0.5, 0)
-                        if not silent then options.callback(Value) end
-                    end
-                    -- 0.49 P13: личны
+        -- прикреплённые элементы (как в старой библиотеке: Toggle:Colorpicker() и т.п.)
+        function w:Colorpicker(d)
+                d = d or {}
+                d.Name = d.Name or w.Title
+                return makeColorpicker(nlSec, d)
+        end
+
+        -- Keybind прикреплённый к Label: прячем Label, имя переносим в Keybind
+        function w:Keybind(d)
+                d = d or {}
+                if (w.Kind == "label" or w.Kind == "paragraph") and w.Title and (not d.Name or d.Name == "") then
+                        d.Name = w.Title
+                end
+                local kb = makeKeybind(nlSec, d)
+                if w.Kind == "label" or w.Kind == "paragraph" then
+                        pcall(function() if w.SetVisible then w:SetVisible(false) end end)
+                end
+                return kb
+        end
+
+        return w
+end
+
+-- ================= конструкторы элементов (маппинг Fust -> Neverlose) =================
+local function makeToggle(sec, data)
+        data = data or {}
+        local userCb = data.Callback
+        local w
+        local obj = sec:Toggle({
+                text = data.Name or data.Title or "Toggle",
+                state = data.Default == nil and false or data.Default,
+                callback = function(v)
+                        if w then
+                                w.Value = v
+                                pushFlag(w, data.Flag, v)
+                        end
+                        if userCb then userCb(v) end
+                end,
+        })
+        w = wrapElement(obj, sec, "toggle", data)
+        w.Value = data.Default == nil and false or data.Default
+        pushFlag(w, data.Flag, w.Value)
+        return w
+end
+
+local function makeSlider(sec, data)
+        data = data or {}
+        local userCb = data.Callback
+        local w
+        local opts = {
+                text = data.Name or data.Title or "Slider",
+                min = data.Min or 0,
+                max = data.Max or 100,
+                default = data.Default or data.Min or 0,
+                callback = function(v)
+                        if w then
+                                w.Value = v
+                                pushFlag(w, data.Flag, v)
+                        end
+                        if userCb then userCb(v) end
+                end,
+        }
+        -- Fust Decimals = ШАГ слайдера (0.05, 5, 50); Neverlose float = шаг округления
+        if data.Decimals and data.Decimals > 0 then
+                opts.float = data.Decimals
+        end
+        local obj = sec:Slider(opts)
+        w = wrapElement(obj, sec, "slider", data)
+        w.Value = opts.default
+        pushFlag(w, data.Flag, opts.default)
+        return w
+end
+
+local function makeDropdown(sec, data)
+        data = data or {}
+        local userCb = data.Callback
+        local w
+        local items = data.Items or data.Values or {}
+        local opts = {
+                text = data.Name or data.Title or "Dropdown",
+                list = items,
+                multi = data.Multi == true,
+                default = data.Default,
+                callback = function(v)
+                        if w then
+                                w.Value = v
+                                pushFlag(w, data.Flag, v)
+                        end
+                        if userCb then userCb(v) end
+                end,
+        }
+        if opts.default == nil then
+                opts.default = (#items > 0 and items[1]) or ""
+        end
+        local obj = sec:Dropdown(opts)
+        w = wrapElement(obj, sec, "dropdown", data)
+        w.Value = data.Default
+        if data.Default ~= nil then
+                pushFlag(w, data.Flag, data.Default)
+        end
+        return w
+end
+
+makeKeybind = function(sec, data)
+        data = data or {}
+        local userCb = data.Callback
+        local onKey = data.OnKeyChanged
+        local w
+        local obj = sec:Keybind({
+                text = data.Name or data.Title or "Keybind",
+                default = normKey(data.Default or Enum.KeyCode.Unknown),
+                onkeychanged = function(keyName)
+                        key = normKey(keyName)
+                        if w then
+                                w.Key = key
+                                pushFlag(w, data.Flag, { Key = tostring(key), Mode = data.Mode or "Toggle" })
+                        end
+                        if onKey then onKey(key) end
+                end,
+                callback = function(keyName)
+                        if userCb then userCb(keyName) end
+                end,
+        })
+        w = wrapElement(obj, sec, "keybind", data)
+        w.Key = normKey(data.Default)
+        pushFlag(w, data.Flag, { Key = tostring(w.Key), Mode = data.Mode or "Toggle" })
+        return w
+end
+
+makeColorpicker = function(sec, data)
+        data = data or {}
+        local userCb = data.Callback
+        local w
+        local obj = sec:Colorpicker({
+                text = data.Name or data.Title or "Цвет",
+                color = colorFrom(data.Default),
+                callback = function(c)
+                        if w then
+                                w.Color = c
+                                pushFlag(w, data.Flag, { Color = "#" .. c:ToHex() })
+                        end
+                        if userCb then userCb(c) end
+                end,
+        })
+        w = wrapElement(obj, sec, "color", data)
+        w.Color = colorFrom(data.Default)
+        pushFlag(w, data.Flag, { Color = "#" .. w.Color:ToHex() })
+        return w
+end
+
+local function makeButton(sec, data)
+        data = data or {}
+        local obj = sec:Button({
+                text = data.Name or data.Title or "Button",
+                callback = data.Callback,
+        })
+        return wrapElement(obj, sec, "button", data)
+end
+
+local function makeLabel(sec, text)
+        local t = tostring(text or "")
+        local obj = sec:Label(t)
+        local w = wrapElement(obj, sec, "label", { Name = t })
+        w.Value = t
+        return w
+end
+
+local function makeTextbox(sec, data)
+        data = data or {}
+        local userCb = data.Callback
+        local w
+        local obj = sec:Textbox({
+                text = data.Name or data.Title or "Input",
+                value = data.Default or "",
+                callback = function(text)
+                        if w then
+                                w.Value = text
+                                pushFlag(w, data.Flag, text)
+                        end
+                        if userCb then userCb(text) end
+                end,
+        })
+        w = wrapElement(obj, sec, "input", data)
+        w.Value = data.Default or ""
+        if data.Default ~= nil then
+                pushFlag(w, data.Flag, data.Default)
+        end
+        return w
+end
+
+local function makeParagraph(sec, data)
+        if type(data) == "string" then data = { Content = data } end
+        data = data or {}
+        local obj = sec:Paragraph({
+                text = data.Name or data.Title or "",
+                content = data.Content or data.Text or "",
+        })
+        return wrapElement(obj, sec, "paragraph", data)
+end
+
+-- ================= секция =================
+local SectionWrapper = {}
+SectionWrapper.__index = SectionWrapper
+
+local function newSection(nlSec)
+        local self = setmetatable({}, SectionWrapper)
+        self.NLSection = nlSec
+        -- 0.48 UPGRADE: раньше (LiquidGlass) Items["Content"].Instance был заглушкой и
+        -- вайтлист-панель с cfgStatus были НЕВИДИМЫ. Теперь отдаём реальный фрейм секции
+        -- Neverlose — кастомный UI (wlPanel, cfgStatus) реально отображается в секции.
+        self.Items = setmetatable({}, {
+                __index = function(_, k)
+                        if k == "Content" then
+                                local frame = nil
+                                pcall(function()
+                                        if nlSec and nlSec.Frame then frame = nlSec.Frame end
+                                end)
+                                return { Instance = frame }
+                        end
+                        return nil
+                end,
+        })
+        return self
+end
+
+-- 0.48: ДЫХАНИЕ ПРИ МАССОВОЙ СБОРКЕ UI. Каждые 8 элементов отдаём поток
+-- на кадр — инициализация больше не замораживает слабые телефоны целиком.
+local NL_ELEM_N = 0
+local function nlBreath()
+        -- 0.50: yield убран (v16: task.wait в загрузке вешал Delta) — счётчик для watchdog остался
+        NL_ELEM_N = NL_ELEM_N + 1
+        getgenv().FUST_ELEMS = NL_ELEM_N
+end
+
+function SectionWrapper:Toggle(d)
+        local r = makeToggle(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Slider(d)
+        local r = makeSlider(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Dropdown(d)
+        local r = makeDropdown(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Keybind(d)
+        local r = makeKeybind(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Colorpicker(d)
+        local r = makeColorpicker(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Button(d)
+        local r = makeButton(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Label(t)
+        local r = makeLabel(self.NLSection, t)
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Textbox(d)
+        local r = makeTextbox(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:Paragraph(d)
+        local r = makeParagraph(self.NLSection, d)
+        nlBreath()
+        return r
+end
+
+function SectionWrapper:SetTitle(t)
+        pcall(function() if self.NLSection and self.NLSection.SetTitle then self.NLSection:SetTitle(t) end end)
+end
+SectionWrapper.Set = SectionWrapper.SetTitle
+
+function SectionWrapper:SetVisible(b)
+        pcall(function()
+                if self.NLSection and self.NLSection.Frame then self.NLSection.Frame.Visible = b and true or false end
+        end)
+end
+
+-- 0.48: Items["Content"] реализован per-instance в newSection (реальный фрейм секции)
+
+-- ================= окно =================
+local function newWindow(nlWin)
+        local self = {}
+        self.LGWindow = nlWin
+        self.IsOpen = true
+        self.Pages = {}
+        self.Items = {}
+        self.TabSections = {} -- [PageName] = tabsection Neverlose
+
+        function self:Group()
+                -- группы навигации старой библиотеки — не поддерживаются, no-op
+        end
+
+        function self:IsOpenLive()
+                local ok, v = pcall(function() return nlWin.SG.Enabled end)
+                if ok and type(v) == "boolean" then return v end
+                return self.IsOpen
+        end
+
+        function self:SetOpen(b)
+                if b == nil then b = not self:IsOpenLive() end
+                pcall(function() nlWin.SG.Enabled = b and true or false end)
+                self.IsOpen = b and true or false
+        end
+
+        function self:Page(Data)
+                Data = Data or {}
+                local Page = { Name = Data.Name or "Page", Icon = Data.Icon, Tabs = {}, Win = self }
+
+                function Page:Section(SecData)
+                        SecData = SecData or {}
+                        local tabName = SecData.Tab or self.Name
+                        -- TabSection Neverlose — один на Page (создаётся лениво)
+                        local ts = self.Win.TabSections[self.Name]
+                        if not ts then
+                                pcall(function()
+                                        ts = nlWin:TabSection({ text = "" })
+                                        self.Win.TabSections[self.Name] = ts
+                                end)
+                        end
+                        -- вкладка Neverlose создаётся лениво: одна на уникальный Tab внутри Page
+                        local entry = self.Tabs[tabName]
+                        if not entry and ts then
+                                local okT, nlTab = pcall(function()
+                                        return ts:Tab({ text = tostring(tabName), icon = self.Icon })
+                                end)
+                                if okT and nlTab then
+                                        entry = nlTab
+                                        self.Tabs[tabName] = nlTab
+                                end
+                        end
+                        local nlSec = nil
+                        pcall(function()
+                                nlSec = entry:Section({ text = SecData.Name or "" })
+                        end)
+                        if not nlSec then
+                                -- фолбэк: невидимая секция-заглушка, чтобы UI не падал
+                                nlSec = { Frame = Instance.new("Frame") }
+                        end
+                        return newSection(nlSec)
+                end
+
+                table.insert(self.Pages, Page)
+                return Page
+        end
+
+        return self
+end
+
+function Library:Window(Data)
+        Data = Data or {}
+        local nlWin = LG:Window({ text = Data.Name or "ПЬЯНЫЙ ПЕТУХ" })
+        Library.NLWindow = nlWin
+        local win = newWindow(nlWin)
+
+        -- хоткей меню (RightControl по умолчанию; PETUH_MENU_KEY обновляется
+        -- через OnKeyChanged в настройках)
+        pcall(function()
+                local UIS = game:GetService("UserInputService")
+                Library:Connect(UIS.InputBegan, function(input, gp)
+                        if gp then return end
+                        local key = getgenv().PETUH_MENU_KEY or Enum.KeyCode.RightControl
+                        if input.KeyCode == key then
+                                win:SetOpen(not win:IsOpenLive())
+                        end
+                end)
+        end)
+
+        -- мобильная кнопка меню (иконка петуха, тап = открыть/закрыть)
+        pcall(function()
+                local UIS = game:GetService("UserInputService")
+                if UIS.TouchEnabled == true then
+                        local icon = PETUH_ICON_ASSET or "rbxassetid://134242818164054"
+                        local mbtn = Instance.new("ImageButton")
+                        mbtn.Name = "FUST_MobileMenu"
+                        mbtn.Image = icon
+                        mbtn.ScaleType = Enum.ScaleType.Fit
+                        mbtn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+                        mbtn.BackgroundTransparency = 0.25
+                        mbtn.BorderSizePixel = 0
+                        mbtn.Size = UDim2.fromOffset(44, 44)
+                        mbtn.Position = UDim2.new(0, 10, 0.5, -22)
+                        mbtn.Active = true
+                        mbtn.AutoButtonColor = false
+                        mbtn.Parent = Library.Holder.Instance
+                        local mc = Instance.new("UICorner")
+                        mc.CornerRadius = UDim.new(0, 8)
+                        mc.Parent = mbtn
+                        local ms = Instance.new("UIStroke")
+                        ms.Color = ACCENT_RED
+                        ms.Thickness = 1.5
+                        ms.Transparency = 0.3
+                        ms.Parent = mbtn
+                        -- drag пальцем + тап
+                        local mdrag, mstart, mpos, mmoved
+                        mbtn.InputBegan:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.MouseButton1
+                                or input.UserInputType == Enum.UserInputType.Touch then
+                                        mdrag = true
+                                        mmoved = false
+                                        mstart = input.Position
+                                        mpos = mbtn.Position
+                                        input.Changed:Connect(function()
+                                                if input.UserInputState == Enum.UserInputState.End then mdrag = false end
+                                        end)
+                                end
+                        end)
+                        mbtn.InputChanged:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.Touch
+                                or input.UserInputType == Enum.UserInputType.MouseMovement then
+                                        if mdrag then
+                                                local d = input.Position - mstart
+                                                if d.Magnitude > 8 then mmoved = true end
+                                                mbtn.Position = UDim2.new(mpos.X.Scale, mpos.X.Offset + d.X, mpos.Y.Scale, mpos.Y.Offset + d.Y)
+                                        end
+                                end
+                        end)
+                        mbtn.MouseButton1Click:Connect(function()
+                                if not mmoved then
+                                        win:SetOpen(not win:IsOpenLive())
+                                end
+                        end)
+                        -- отдаём в формате, который ждёт основной код:
+                        -- Window.LGWindow.MobileButton.Root
+                        nlWin.MobileButton = { Root = mbtn }
+                end
+        end)
+
+        return win
+end
+
+-- ================= настройки =================
+function Library:CreateSettingsPage(Win)
+        task.delay(1, function()
+                local ok, err = pcall(function()
+                        local SettingsPage = Win:Page({ Name = "Settings", Icon = "rbxassetid://80758916183665" })
+
+                        -- кнопка-петух
+                        local MenuSection = SettingsPage:Section({ Name = "Кнопка меню", Tab = "Меню" })
+                        MenuSection:Toggle({
+                                Name = "Скрыть кнопку-петух (только хоткей)",
+                                Flag = "PetuhBtnHidden",
+                                Default = false,
+                                Callback = function(state)
+                                        if petuhSetBtnHidden then petuhSetBtnHidden(state) end
+                                end,
+                        })
+                        MenuSection:Label("Клавиша меню (назначить)"):Keybind({
+                                Name = "Клавиша открытия/закрытия меню",
+                                Flag = "PetuhMenuKey",
+                                Default = Enum.KeyCode.RightControl,
+                                Mode = "Toggle",
+                                Callback = function() end,
+                                OnKeyChanged = function(key)
+                                        pcall(function()
+                                                PETUH_MENU_KEY = key
+                                                Library.LG.ToggleKey = key
+                                                journal("МЕНЮ: клавиша = " .. tostring(key))
+                                        end)
+                                end,
+                        })
+                        pcall(function()
+                                if type(delfile) == "function" then pcall(delfile, "FUST_loadScreen_ON.txt") end
+                        end)
+                        MenuSection:Label("Кнопку можно перетащить в любое место.")
+
+                        -- окно
+                        local WinSection = SettingsPage:Section({ Name = "Окно", Tab = "Оформление" })
+                        WinSection:Button({
+                                Name = "Выгрузить скрипт (Unload)",
+                                Callback = function()
+                                        Library:Unload()
+                                end,
+                        })
+
+                        -- конфиги
+                        local ConfigsSection = SettingsPage:Section({ Name = "Configs", Tab = "Конфиги" })
+                        local ConfigName, ConfigSelected

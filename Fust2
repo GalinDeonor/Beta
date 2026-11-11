@@ -1,1575 +1,3 @@
-й RenderStepped удалён — рендерит общий хаб
-                    -- P4: стартовое значение
-                    if options.default ~= nil then
-                        setByValue(options.default, true)
-                    else
-                        sliderTextBox.Text = tostring(options.min)
-                        Value = options.min
-                    end
-
-                    sliderBallCorner.CornerRadius = UDim.new(0, 50)
-                    sliderBallCorner.Name = "sliderBallCorner"
-                    sliderBallCorner.Parent = sliderBall
-
-                    sliderTextBox.Name = "sliderTextBox"
-                    sliderTextBox.Parent = sliderLabel
-                    sliderTextBox.BackgroundColor3 = Color3.fromRGB(1, 7, 17)
-                    sliderTextBox.AnchorPoint = Vector2.new(0.5, 0.5)
-                    sliderTextBox.Position = UDim2.new(2.4, 0, 0.5, 0)
-                    sliderTextBox.Size = UDim2.new(0, 31, 0, 15)
-                    sliderTextBox.Font = Enum.Font.Gotham
-                    sliderTextBox.Text = options.min
-                    sliderTextBox.TextColor3 = Color3.fromRGB(234, 239, 245)
-                    sliderTextBox.TextSize = 11.000
-                    sliderTextBox.TextWrapped = true
-
-                    sliderTextBox.Focused:Connect(function()
-                        TweenService:Create(sliderLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(234, 239, 246)}):Play()
-                    end)
-
-                    sliderTextBox.FocusLost:Connect(function(Enter)
-                        TweenService:Create(sliderLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(157, 171, 182)}):Play()
-                        if Enter then
-                            if sliderTextBox.Text ~= nil and sliderTextBox.Text ~= "" then
-                                if tonumber(sliderTextBox.Text) > options.max then
-                                    setByValue(options.max, false)
-                                elseif tonumber(sliderTextBox.Text) < options.min then
-                                    setByValue(options.min, false)
-                                else
-                                    setByValue(tonumber(sliderTextBox.Text), false)
-                                end
-                            end
-                        end
-                    end)
-
-                    Resize(25)
-                    -- P6: объект слайдера
-                    local self = {}
-                    function self:Set(v, silent) setByValue(v, silent) end
-                    function self:Get() return Value end
-                    self.Value = function() return Value end
-                    self.Instance = sliderLabel
-                    return self
-                end
-
-                function elements:Dropdown(options)
-                    if not options.text or not options.default or not options.list or not options.callback then Notify("Dropdown", "Missing arguments!") return end
-
-                    local DropYSize = 0
-                    local Dropped = false
-
-                    local Dropdown = Instance.new("Frame")
-                    local dropdownLabel = Instance.new("TextLabel")
-                    local dropdownText = Instance.new("TextLabel")
-                    local dropdownArrow = Instance.new("ImageButton")
-                    local dropdownList = Instance.new("Frame")
-
-                    local dropListLayout = Instance.new("UIListLayout")
-                    buttoneffect({frame = dropdownLabel, entered = Dropdown})
-
-                    Dropdown.Name = "Dropdown"
-                    Dropdown.Parent = sectionFrame
-                    Dropdown.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    Dropdown.BackgroundTransparency = 1.000
-                    Dropdown.BorderSizePixel = 0
-                    Dropdown.Position = UDim2.new(0.0697674453, 0, 0.237037033, 0)
-                    Dropdown.Size = UDim2.new(0, 200, 0, 22)
-                    Dropdown.ZIndex = 2
-
-                    dropdownLabel.Name = "dropdownLabel"
-                    dropdownLabel.Parent = Dropdown
-                    dropdownLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    dropdownLabel.BackgroundTransparency = 1.000
-                    dropdownLabel.BorderSizePixel = 0
-                    dropdownLabel.Size = UDim2.new(0, 105, 0, 22)
-                    dropdownLabel.Font = Enum.Font.Gotham
-                    dropdownLabel.Text = " " .. options.text
-                    dropdownLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    dropdownLabel.TextSize = 14.000
-                    dropdownLabel.TextXAlignment = Enum.TextXAlignment.Left
-                    dropdownLabel.TextWrapped = true
-
-                    dropdownText.Name = "dropdownText"
-                    dropdownText.Parent = dropdownLabel
-                    dropdownText.BackgroundColor3 = Color3.fromRGB(2, 5, 12)
-                    dropdownText.Position = UDim2.new(1.08571434, 0, 0.0909090936, 0)
-                    dropdownText.Size = UDim2.new(0, 87, 0, 18)
-                    dropdownText.Font = Enum.Font.Gotham
-                    dropdownText.Text = " " .. (type(options.default) == "table" and tostring(options.default[1] or "") or tostring(options.default or ""))
-                    dropdownText.TextColor3 = Color3.fromRGB(234, 239, 245)
-                    dropdownText.TextSize = 12.000
-                    dropdownText.TextXAlignment = Enum.TextXAlignment.Left
-                    dropdownText.TextWrapped = true
-
-                    dropdownArrow.Name = "dropdownArrow"
-                    dropdownArrow.Parent = dropdownText
-                    dropdownArrow.BackgroundColor3 = Color3.fromRGB(2, 5, 12)
-                    dropdownArrow.BorderSizePixel = 0
-                    dropdownArrow.Position = UDim2.new(0.87356323, 0, 0.138888866, 0)
-                    dropdownArrow.Size = UDim2.new(0, 11, 0, 13)
-                    dropdownArrow.AutoButtonColor = false
-                    dropdownArrow.Image = "rbxassetid://8008296380"
-                    dropdownArrow.ImageColor3 = Color3.fromRGB(157, 171, 182)
-
-                    dropdownArrow.MouseButton1Click:Connect(function()
-                        Dropped = not Dropped
-                        if Dropped then
-                            if dropdownLabel.TextColor3 ~= Color3.fromRGB(234, 239, 245) then
-                                TweenService:Create(dropdownLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                    TextColor3 = Color3.fromRGB(234, 239, 246)
-                                }):Play()
-                            end
-                            TweenService:Create(dropdownList, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                Size = UDim2.new(0, 87, 0, DropYSize)
-                            }):Play()
-                            TweenService:Create(dropdownList, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                BorderSizePixel = 1
-                            }):Play()
-                        elseif not Dropped then
-                            if dropdownLabel.TextColor3 ~= Color3.fromRGB(157, 171, 182) then
-                                TweenService:Create(dropdownLabel, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                    TextColor3 = Color3.fromRGB(157, 171, 182)
-                                }):Play()
-                            end
-                            TweenService:Create(dropdownList, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                Size = UDim2.new(0, 87, 0, 0)
-                            }):Play()
-                            TweenService:Create(dropdownList, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                BorderSizePixel = 0
-                            }):Play()
-                        end
-                    end)
-
-                    dropdownList.Name = "dropdownList"
-                    dropdownList.Parent = dropdownText
-                    dropdownList.BackgroundColor3 = Color3.fromRGB(2, 5, 12)
-                    dropdownList.Position = UDim2.new(0, 0, 1, 0)
-                    dropdownList.Size = UDim2.new(0, 87, 0, 0)
-                    dropdownList.ClipsDescendants = true
-                    dropdownList.BorderSizePixel = 0
-                    dropdownList.ZIndex = 10
-
-                    dropListLayout.Name = "dropListLayout"
-                    dropListLayout.Parent = dropdownList
-                    dropListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-                    Resize(25)
-
-                    -- P8: Multi-режим + P6: объект
-                    local multi = options.multi == true
-                    local selected = {}
-                    if multi then
-                        -- Default может быть строкой или таблицей
-                        if type(options.default) == "string" then
-                            selected[options.default] = true
-                        elseif type(options.default) == "table" then
-                            for _, dv in ipairs(options.default) do selected[dv] = true end
-                        end
-                    end
-                    local function selectedText()
-                        if not multi then return dropdownText.Text end
-                        local n = 0
-                        for _ in pairs(selected) do n = n + 1 end
-                        return " выбрано: " .. n
-                    end
-
-                    local listButtons = {}
-                    local function buildList()
-                        for _, ch in ipairs(dropdownList:GetChildren()) do
-                            if ch:IsA("TextButton") then ch:Destroy() end
-                        end
-                        DropYSize = 0
-                        for i,v in next, options.list do
-                            local dropdownBtn = Instance.new("TextButton")
-
-                            dropdownBtn.Name = "dropdownBtn"
-                            dropdownBtn.Parent = dropdownList
-                            dropdownBtn.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-                            dropdownBtn.BackgroundTransparency = 1.000
-                            dropdownBtn.BorderSizePixel = 0
-                            dropdownBtn.Size = UDim2.new(0, 87, 0, 18)
-                            dropdownBtn.AutoButtonColor = false
-                            dropdownBtn.Font = Enum.Font.Gotham
-                            dropdownBtn.TextColor3 = (multi and selected[v]) and Color3.fromRGB(255, 59, 48) or Color3.fromRGB(234, 239, 245)
-                            dropdownBtn.TextSize = 12.000
-                            dropdownBtn.Text = (multi and selected[v]) and ("+ " .. v) or v
-                            dropdownBtn.ZIndex = 15
-                            clickEffect({button = dropdownBtn, amount = 5})
-
-                            DropYSize = DropYSize + 18
-                            listButtons[v] = dropdownBtn
-
-                            dropdownBtn.MouseButton1Click:Connect(function()
-                                if multi then
-                                    selected[v] = not selected[v]
-                                    dropdownBtn.Text = selected[v] and ("+ " .. v) or v
-                                    dropdownBtn.TextColor3 = selected[v] and Color3.fromRGB(255, 59, 48) or Color3.fromRGB(234, 239, 245)
-                                    local list = {}
-                                    for lv in pairs(selected) do table.insert(list, lv) end
-                                    dropdownText.Text = selectedText()
-                                    options.callback(list)
-                                else
-                                    dropdownText.Text = " " .. v
-                                    options.callback(v)
-                                end
-                            end)
-                        end
-                    end
-                    buildList()
-                    if multi then
-                        dropdownText.Text = selectedText()
-                    end
-
-                    -- P6: объект дропдауна
-                    local self = {}
-                    function self:Set(v, silent)
-                        if multi then
-                            if type(v) == "string" then v = { v } end
-                            selected = {}
-                            if type(v) == "table" then
-                                for _, dv in ipairs(v) do selected[dv] = true end
-                            end
-                            buildList()
-                            dropdownText.Text = selectedText()
-                            if not silent then
-                                local list = {}
-                                for lv in pairs(selected) do table.insert(list, lv) end
-                                options.callback(list)
-                            end
-                        else
-                            if v ~= nil then
-                                dropdownText.Text = " " .. tostring(v)
-                                if not silent then options.callback(v) end
-                            end
-                        end
-                    end
-                    function self:Get()
-                        if multi then
-                            local list = {}
-                            for lv in pairs(selected) do table.insert(list, lv) end
-                            return list
-                        end
-                        return (dropdownText.Text:gsub("^%s+", ""))
-                    end
-                    self.Value = self.Get
-                    function self:SetOptions(newList)
-                        options.list = newList or {}
-                        if multi then selected = {} end
-                        buildList()
-                        if multi then dropdownText.Text = selectedText() end
-                    end
-                    self.SetValues = self.SetOptions
-                    self.Instance = dropdownLabel
-                    return self
-                end
-
-                -- P7: Label (в Neverlose не было)
-                function elements:Label(text)
-                    text = tostring(text or "")
-                    local lbl = Instance.new("TextLabel")
-                    lbl.Name = "nlLabel"
-                    lbl.Parent = sectionFrame
-                    lbl.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-                    lbl.BackgroundTransparency = 1.000
-                    lbl.BorderSizePixel = 0
-                    lbl.Size = UDim2.new(0, 200, 0, 22)
-                    lbl.Font = Enum.Font.Gotham
-                    lbl.Text = " " .. text
-                    lbl.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    lbl.TextSize = 14.000
-                    lbl.TextXAlignment = Enum.TextXAlignment.Left
-                    lbl.TextWrapped = false
-                    Resize(22)
-                    local self = {}
-                    function self:SetText(t) lbl.Text = " " .. tostring(t) end
-                    self.SetTitle = self.SetText
-                    function self:Get() return lbl.Text end
-                    self.Value = self.Get
-                    function self:SetVisible(b) lbl.Visible = b and true or false end
-                    self.Instance = lbl
-                    return self
-                end
-
-                -- P7: Paragraph (многострочный текст)
-                function elements:Paragraph(options)
-                    options = options or {}
-                    local title = tostring(options.text or options.title or "")
-                    local content = tostring(options.content or "")
-                    local holder = Instance.new("Frame")
-                    holder.Name = "nlParagraph"
-                    holder.Parent = sectionFrame
-                    holder.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-                    holder.BackgroundTransparency = 1.000
-                    holder.BorderSizePixel = 0
-                    holder.Size = UDim2.new(0, 200, 0, 22)
-                    local tt = Instance.new("TextLabel")
-                    tt.Name = "title"
-                    tt.Parent = holder
-                    tt.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-                    tt.BackgroundTransparency = 1.000
-                    tt.BorderSizePixel = 0
-                    tt.Size = UDim2.new(0, 200, 0, title ~= "" and 16 or 0)
-                    tt.Font = Enum.Font.GothamSemibold
-                    tt.Text = " " .. title
-                    tt.TextColor3 = Color3.fromRGB(234, 239, 245)
-                    tt.TextSize = 13.000
-                    tt.TextXAlignment = Enum.TextXAlignment.Left
-                    tt.TextWrapped = true
-                    tt.Visible = title ~= ""
-                    local cc = Instance.new("TextLabel")
-                    cc.Name = "content"
-                    cc.Parent = holder
-                    cc.BackgroundColor3 = Color3.fromRGB(234, 239, 245)
-                    cc.BackgroundTransparency = 1.000
-                    cc.BorderSizePixel = 0
-                    cc.Position = UDim2.new(0, 0, 0, title ~= "" and 16 or 0)
-                    cc.Size = UDim2.new(0, 200, 0, 18)
-                    cc.Font = Enum.Font.Gotham
-                    cc.Text = " " .. content
-                    cc.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    cc.TextSize = 12.000
-                    cc.TextXAlignment = Enum.TextXAlignment.Left
-                    cc.TextYAlignment = Enum.TextYAlignment.Top
-                    cc.TextWrapped = true
-                    -- авто-высота по содержимому
-                    cc:GetPropertyChangedSignal("TextBounds"):Connect(function()
-                        local lines = math.max(1, math.ceil(cc.TextBounds.Y / 16))
-                        cc.Size = UDim2.new(0, 200, 0, lines * 16)
-                        holder.Size = UDim2.new(0, 200, 0, (title ~= "" and 16 or 0) + lines * 16 + 4)
-                    end)
-                    holder.Size = UDim2.new(0, 200, 0, (title ~= "" and 16 or 0) + 18 + 4)
-                    Resize((title ~= "" and 16 or 0) + 18 + 4)
-                    local self = {}
-                    function self:SetText(t) cc.Text = " " .. tostring(t) end
-                    function self:SetTitle(t) tt.Text = " " .. tostring(t) end
-                    function self:Set(v)
-                        if type(v) == "table" and v.Content then cc.Text = " " .. tostring(v.Content)
-                        else cc.Text = " " .. tostring(v) end
-                    end
-                    function self:SetVisible(b) holder.Visible = b and true or false end
-                    self.Instance = holder
-                    return self
-                end
-
-                function elements:Textbox(options)
-                    if not options.text or not options.value or not options.callback then Notify("Textbox", "Missing arguments!") return end
-
-                    local Textbox = Instance.new("Frame")
-                    local textBoxLabel = Instance.new("TextLabel")
-                    local textBox = Instance.new("TextBox")
-
-                    Textbox.Name = "Textbox"
-                    Textbox.Parent = sectionFrame
-                    Textbox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    Textbox.BackgroundTransparency = 1.000
-                    Textbox.BorderSizePixel = 0
-                    Textbox.Position = UDim2.new(0.0348837227, 0, 0.945454538, 0)
-                    Textbox.Size = UDim2.new(0, 200, 0, 22)
-                    buttoneffect({frame = textBoxLabel, entered = Textbox})
-
-                    textBoxLabel.Name = "textBoxLabel"
-                    textBoxLabel.Parent = Textbox
-                    textBoxLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-                    textBoxLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
-                    textBoxLabel.BackgroundTransparency = 1.000
-                    textBoxLabel.Position = UDim2.new(0.237000003, 0, 0.5, 0)
-                    textBoxLabel.Size = UDim2.new(0, 99, 0, 22)
-                    textBoxLabel.Font = Enum.Font.Gotham
-                    textBoxLabel.Text = "  " .. options.text
-                    textBoxLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    textBoxLabel.TextSize = 14.000
-                    textBoxLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-                    textBox.Name = "textBox"
-                    textBox.Parent = Textbox
-                    textBox.AnchorPoint = Vector2.new(0.5, 0.5)
-                    textBox.BackgroundColor3 = Color3.fromRGB(1, 7, 17)
-                    textBox.Position = UDim2.new(0.850000024, 0, 0.5, 0)
-                    textBox.Size = UDim2.new(0, 53, 0, 15)
-                    textBox.Font = Enum.Font.Gotham
-                    textBox.Text = options.value
-                    textBox.TextColor3 = Color3.fromRGB(234, 239, 245)
-                    textBox.TextSize = 11.000
-                    textBox.TextWrapped = true
-
-                    Resize(25)
-
-                    textBox.Focused:Connect(function()
-                        TweenService:Create(textBoxLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(234, 239, 246)}):Play()
-                    end)
-
-                    textBox.FocusLost:Connect(function(Enter)
-                        TweenService:Create(textBoxLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {TextColor3 = Color3.fromRGB(157, 171, 182)}):Play()
-                        if Enter then
-                            if textBox.Text ~= nil and textBox.Text ~= "" then
-                                options.callback(textBox.Text)
-                            end
-                        end
-                    end)
-                    -- P6: объект текстбокса
-                    local self = {}
-                    function self:Set(v) textBox.Text = tostring(v or "") end
-                    function self:Get() return textBox.Text end
-                    self.Value = self.Get
-                    self.Instance = textBoxLabel
-                    return self
-                end
-
-                function elements:Colorpicker(options)
-                    if not options.text or not options.color or not options.callback then Notify("Colorpicker", "Missing arguments!") return end
-
-
-                    local hue, sat, val = Color3.toHSV(options.color)
-
-                    local Colorpicker = Instance.new("Frame")
-                    local colorpickerLabel = Instance.new("TextLabel")
-                    local colorpickerButton = Instance.new("ImageButton")
-                    local colorpickerFrame = Instance.new("Frame")
-                    local RGB = Instance.new("ImageButton")
-                    local RGBCircle = Instance.new("ImageLabel")
-                    local Darkness = Instance.new("ImageButton")
-                    local DarknessCircle = Instance.new("Frame")
-                    local colorHex = Instance.new("TextLabel")
-                    local Copy = Instance.new("TextButton")
-                    buttoneffect({frame = colorpickerLabel, entered = Colorpicker})
-
-                    local vis = false 
-
-                    Colorpicker.Name = "Colorpicker"
-                    Colorpicker.Parent = sectionFrame
-                    Colorpicker.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    Colorpicker.BackgroundTransparency = 1.000
-                    Colorpicker.BorderSizePixel = 0
-                    Colorpicker.Position = UDim2.new(0.0348837227, 0, 0.945454538, 0)
-                    Colorpicker.Size = UDim2.new(0, 200, 0, 22)
-                    Colorpicker.ZIndex = 2
-
-                    colorpickerLabel.Name = "colorpickerLabel"
-                    colorpickerLabel.Parent = Colorpicker
-                    colorpickerLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-                    colorpickerLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
-                    colorpickerLabel.BackgroundTransparency = 1.000
-                    colorpickerLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
-                    colorpickerLabel.Size = UDim2.new(0, 200, 0, 22)
-                    colorpickerLabel.Font = Enum.Font.Gotham
-                    colorpickerLabel.Text = " " .. options.text
-                    colorpickerLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    colorpickerLabel.TextSize = 14.000
-                    colorpickerLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-                    colorpickerButton.Name = "colorpickerButton"
-                    colorpickerButton.Parent = colorpickerLabel
-                    colorpickerButton.AnchorPoint = Vector2.new(0.5, 0.5)
-                    colorpickerButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    colorpickerButton.BackgroundTransparency = 1.000
-                    colorpickerButton.BorderSizePixel = 0
-                    colorpickerButton.Position = UDim2.new(0.920, 0, 0.57, 0)
-                    colorpickerButton.Size = UDim2.new(0, 15, 0, 15)
-                    colorpickerButton.Image = "rbxassetid://8023491332"
-                    colorpickerButton.MouseButton1Click:Connect(function()
-                        colorpickerFrame.Visible = not colorpickerFrame.Visible
-                        vis = not vis
-                        TweenService:Create(colorpickerLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.InOut), {
-                            TextColor3 = vis and Color3.fromRGB(234, 239, 246) or Color3.fromRGB(157, 171, 182)
-                        }):Play()
-                    end)
-
-                    colorpickerFrame.Name = "colorpickerFrame"
-                    colorpickerFrame.Parent = Colorpicker
-                    colorpickerFrame.Visible = false
-                    colorpickerFrame.BackgroundColor3 = Color3.fromRGB(0, 10, 21)
-                    colorpickerFrame.Position = UDim2.new(1.15, 0, 0.5, 0)
-                    colorpickerFrame.Size = UDim2.new(0, 251, 0, 221)
-                    colorpickerFrame.ZIndex = 15
-                    Dragify(colorpickerFrame, Colorpicker)
-
-                    RGB.Name = "RGB"
-                    RGB.Parent = colorpickerFrame
-                    RGB.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    RGB.BackgroundTransparency = 1.000
-                    RGB.BorderSizePixel = 0
-                    RGB.Position = UDim2.new(0.0670000017, 0, 0.0680000037, 0)
-                    RGB.Size = UDim2.new(0, 179, 0, 161)
-                    RGB.AutoButtonColor = false
-                    RGB.Image = "rbxassetid://6523286724"
-                    RGB.ZIndex = 16
-
-                    RGBCircle.Name = "RGBCircle"
-                    RGBCircle.Parent = RGB
-                    RGBCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    RGBCircle.BackgroundTransparency = 1.000
-                    RGBCircle.BorderColor3 = Color3.fromRGB(27, 42, 53)
-                    RGBCircle.BorderSizePixel = 0
-                    RGBCircle.Size = UDim2.new(0, 14, 0, 14)
-                    RGBCircle.Image = "rbxassetid://3926309567"
-                    RGBCircle.ImageRectOffset = Vector2.new(628, 420)
-                    RGBCircle.ImageRectSize = Vector2.new(48, 48)
-                    RGBCircle.ZIndex = 16
-
-                    Darkness.Name = "Darkness"
-                    Darkness.Parent = colorpickerFrame
-                    Darkness.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    Darkness.BorderSizePixel = 0
-                    Darkness.Position = UDim2.new(0.831940293, 0, 0.0680000708, 0)
-                    Darkness.Size = UDim2.new(0, 33, 0, 161)
-                    Darkness.AutoButtonColor = false
-                    Darkness.Image = "rbxassetid://156579757"
-                    Darkness.ZIndex = 16
-
-                    DarknessCircle.Name = "DarknessCircle"
-                    DarknessCircle.Parent = Darkness
-                    DarknessCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    DarknessCircle.BorderSizePixel = 0
-                    DarknessCircle.Position = UDim2.new(0, 0, 0, 0)
-                    DarknessCircle.Size = UDim2.new(0, 33, 0, 5)
-                    DarknessCircle.ZIndex = 16
-
-                    colorHex.Name = "colorHex"
-                    colorHex.Parent = colorpickerFrame
-                    colorHex.BackgroundColor3 = Color3.fromRGB(9, 8, 13)
-                    colorHex.Position = UDim2.new(0.0717131495, 0, 0.850678742, 0)
-                    colorHex.Size = UDim2.new(0, 94, 0, 24)
-                    colorHex.Font = Enum.Font.GothamSemibold
-                    colorHex.Text = "#FFFFFF"
-                    colorHex.TextColor3 = Color3.fromRGB(234, 239, 245)
-                    colorHex.TextSize = 14.000
-                    colorHex.ZIndex = 16
-
-                    Copy.Parent = colorpickerFrame
-                    Copy.BackgroundColor3 = Color3.fromRGB(9, 8, 13)
-                    Copy.Position = UDim2.new(0.72111553, 0, 0.850678742, 0)
-                    Copy.Size = UDim2.new(0, 60, 0, 24)
-                    Copy.AutoButtonColor = false
-                    Copy.Font = Enum.Font.GothamSemibold
-                    Copy.Text = "Copy"
-                    Copy.TextColor3 = Color3.fromRGB(234, 239, 245)
-                    Copy.TextSize = 14.000
-                    Copy.ZIndex = 16
-                    Resize(25)
-                    Copy.MouseButton1Click:Connect(function()
-                        if setclipboard then
-                            setclipboard(tostring(colorHex.Text))
-                            Notify("Cryptweb:", tostring(colorHex.Text))
-                            Notify("Cryptweb:", "Done!")
-                        else
-                            print(tostring(colorHex.Text))
-                            Notify("Cryptweb:", tostring(colorHex.Text))
-                            Notify("Cryptweb:", "Your exploit does not support the function 'setclipboard', so we've printed it out.")
-                        end
-                    end)
-
-                    local ceil,clamp,atan2,pi   = math.ceil,math.clamp,math.atan2,math.pi
-                    local tostr,sub             = tostring,string.sub
-                    local fromHSV               = Color3.fromHSV
-                    local v2,udim2              = Vector2.new,UDim2.new
-
-                    local UserInputService  = game:GetService("UserInputService")
-                    -- 0.49 P13: GetMouse удалён (блокировал поток) — координаты даёт общий хаб
-
-                    local WheelDown         = false
-                    local SlideDown         = false
-
-                    local function toPolar(v)
-                        return atan2(v.y, v.x), v.magnitude;
-                    end
-
-                    local function radToDeg(x)
-                        return ((x + pi) / (2 * pi)) * 360;
-                    end
-                    local hue, saturation, value = 0, 0, 1;
-                    local color = {1,1,1}
-
-                    local function to_hex(color)
-                        return string.format("#%02X%02X%02X", color.R * 255, color.G * 255, color.B * 255)
-                    end
-                    local function update()
-                        local r = color[1];
-                        local g = color[2];
-                        local b = color[3];
-
-                        local c = fromHSV(r, g, b);
-                        colorHex.Text = tostring(to_hex(c))
-                    end
-                    local function UpdateSlide(iX,iY)   
-                        local y = iY - Darkness.AbsolutePosition.Y
-                        local maxY = Darkness.AbsoluteSize.Y
-                        if y<0 then y=0 end
-                        if y>maxY then y=maxY end
-                        y = y/maxY
-                        local cy = DarknessCircle.AbsoluteSize.Y/2
-                        color = {color[1],color[2],1-y}
-                        local realcolor = Color3.fromHSV(color[1],color[2],color[3])
-                        DarknessCircle.BackgroundColor3 = realcolor
-                        DarknessCircle.Position = UDim2.new(0,0,y,-cy)
-                        options.callback(realcolor)
-
-                        update();
-                    end
-                    local function UpdateRing(iX,iY)
-                        local ml = mouseLocation()
-                        local x,y = ml.X - RGB.AbsolutePosition.X,ml.Y - RGB.AbsolutePosition.Y
-                        local maxX,maxY = RGB.AbsoluteSize.X,RGB.AbsoluteSize.Y
-                        if x<0 then 
-                            x=0 
-                        end
-                        if x>maxX then 
-                            x=maxX 
-                        end
-                        if y<0 then 
-                            y=0 
-                        end
-                        if y>maxY then 
-                            y=maxY
-                        end
-                        x = x/maxX
-                        y = y/maxY
-
-                        local cx = RGBCircle.AbsoluteSize.X/2
-                        local cy = RGBCircle.AbsoluteSize.Y/2
-
-                        RGBCircle.Position = udim2(x,-cx,y,-cy)
-
-                        color = {1-x,1-y,color[3]}
-                        local realcolor = Color3.fromHSV(color[1],color[2],color[3])
-                        Darkness.BackgroundColor3 = realcolor
-                        DarknessCircle.BackgroundColor3 = realcolor
-                        options.callback(realcolor)
-                        update();
-                    end
-
-
-                    RGB.MouseButton1Down:Connect(function()
-                        WheelDown = true
-                        NL_PICK_FN = function(x, y) UpdateRing(x, y) end
-                        if NL_HUB_X and NL_HUB_Y then UpdateRing(NL_HUB_X, NL_HUB_Y) end
-                    end)
-                    Darkness.MouseButton1Down:Connect(function()
-                        SlideDown = true
-                        NL_PICK_FN = function(x, y) UpdateSlide(x, y) end
-                        if NL_HUB_X and NL_HUB_Y then UpdateSlide(NL_HUB_X, NL_HUB_Y) end
-                    end)
-
-
-                    -- 0.49 P13: отпускание пальца ловит общий хаб
-
-                    -- P5: MouseMoved не работает на таче -> UserInputService.InputChanged
-                    -- 0.49 P13: движение ловит общий хаб (NL_PICK_FN)
-
-                    local function setcolor(tbl)
-                        local realcolor = Color3.fromHSV(tbl[1],tbl[2],tbl[3])
-                        colorHex.Text = tostring(to_hex(realcolor))
-                        DarknessCircle.BackgroundColor3 = realcolor
-                    end
-                    setcolor({hue,sat,val})
-                    -- P6: объект колорпикера
-                    local self = {}
-                    function self:Set(c, silent)
-                        if typeof(c) ~= "Color3" then return end
-                        local h, s, v2 = Color3.toHSV(c)
-                        color = {h, s, v2}
-                        setcolor(color)
-                        Darkness.BackgroundColor3 = c
-                        if not silent then options.callback(c) end
-                    end
-                    function self:Get()
-                        return Color3.fromHSV(color[1], color[2], color[3])
-                    end
-                    self.Value = self.Get
-                    self.Instance = colorpickerLabel
-                    return self
-                end
-
-                function elements:Keybind(options)
-                    if not options.text or not options.default or not options.callback then Notify("Keybind", "Missing arguments") return end
-
-                    Resize(25)
-
-                    local blacklisted = {
-                        Return = true,
-                        Space = true,
-                        Tab = true,
-                        W = true,
-                        A = true,
-                        S = true,
-                        D = true,
-                        I = true,
-                        O = true,
-                        Unknown = true
-                    }
-
-                    local short = {
-                        RightControl = "RCtrl",
-                        LeftControl = "LCtrl",
-                        LeftShift = "LShift",
-                        RightShift = "RShift",
-                        MouseButton1 = "M1",
-                        MouseButton2 = "M2",
-                        LeftAlt = "LAlt",
-                        RightAlt = "RAlt"
-                    }
-
-                    local oldKey = (typeof(options.default) == "EnumItem" and options.default.Name) or tostring(options.default or "None")
-                    local Keybind = Instance.new("Frame")
-                    local keybindButton = Instance.new("TextButton")
-                    local keybindLabel = Instance.new("TextLabel")
-
-                    Keybind.Name = "Keybind"
-                    Keybind.Parent = sectionFrame
-                    Keybind.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    Keybind.BackgroundTransparency = 1.000
-                    Keybind.BorderSizePixel = 0
-                    Keybind.Position = UDim2.new(0.0348837227, 0, 0.945454538, 0)
-                    Keybind.Size = UDim2.new(0, 200, 0, 22)
-                    Keybind.ZIndex = 2
-                    buttoneffect({frame = keybindButton, entered = Keybind})
-
-                    keybindButton.Name = "keybindButton"
-                    keybindButton.Parent = Keybind
-                    keybindButton.AnchorPoint = Vector2.new(0.5, 0.5)
-                    keybindButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-                    keybindButton.BackgroundTransparency = 1.000
-                    keybindButton.BorderSizePixel = 0
-                    keybindButton.Position = UDim2.new(0.5, 0, 0.5, 0)
-                    keybindButton.Size = UDim2.new(0, 200, 0, 22)
-                    keybindButton.AutoButtonColor = false
-                    keybindButton.Font = Enum.Font.Gotham
-                    keybindButton.Text = " " .. options.text
-                    keybindButton.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    keybindButton.TextSize = 14.000
-                    keybindButton.TextXAlignment = Enum.TextXAlignment.Left
-                    keybindButton.MouseButton1Click:Connect(function()
-                        keybindLabel.Text = "... "
-                        TweenService:Create(keybindButton, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                            TextColor3 = Color3.fromRGB(234, 239, 246)
-                        }):Play()
-                        TweenService:Create(keybindLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                            TextColor3 = Color3.fromRGB(234, 239, 246)
-                        }):Play()
-                        local inputbegan = game:GetService("UserInputService").InputBegan:wait()
-                        if not blacklisted[inputbegan.KeyCode.Name] then
-                            TweenService:Create(keybindLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                TextColor3 = Color3.fromRGB(157, 171, 182)
-                            }):Play()
-                            TweenService:Create(keybindButton, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                TextColor3 = Color3.fromRGB(157, 171, 182)
-                            }):Play()
-                            keybindLabel.Text = short[inputbegan.KeyCode.Name] or inputbegan.KeyCode.Name
-                            oldKey = inputbegan.KeyCode.Name
-                            if options.onkeychanged then
-                                pcall(options.onkeychanged, oldKey)
-                            end
-                        else
-                            TweenService:Create(keybindButton, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                TextColor3 = Color3.fromRGB(157, 171, 182)
-                            }):Play()
-                            TweenService:Create(keybindLabel, TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                                TextColor3 = Color3.fromRGB(157, 171, 182)
-                            }):Play()
-                            keybindLabel.Text = short[oldKey] or oldKey
-                        end
-                    end)
-
-                    -- 0.49 P13: общий диспетчер клавиш вместо личного InputBegan
-                    NL_KEY_FNS[#NL_KEY_FNS + 1] = function(key)
-                        if key.KeyCode.Name == oldKey then
-                            options.callback(oldKey)
-                        end
-                    end
-
-                    keybindLabel.Name = "keybindLabel"
-                    keybindLabel.Parent = keybindButton
-                    keybindLabel.AnchorPoint = Vector2.new(0.5, 0.5)
-                    keybindLabel.BackgroundColor3 = Color3.fromRGB(157, 171, 182)
-                    keybindLabel.BackgroundTransparency = 1.000
-                    keybindLabel.Position = UDim2.new(0.910000026, 0, 0.5, 0)
-                    keybindLabel.Size = UDim2.new(0, 36, 0, 22)
-                    keybindLabel.Font = Enum.Font.Gotham
-                    keybindLabel.Text = oldKey .. " "
-                    keybindLabel.TextColor3 = Color3.fromRGB(157, 171, 182)
-                    keybindLabel.TextSize = 14.000
-                    keybindLabel.TextXAlignment = Enum.TextXAlignment.Right
-                    -- P6: объект кейбинда
-                    local self = {}
-                    function self:Set(k, silent)
-                        local nm = typeof(k) == "EnumItem" and k.Name or tostring(k)
-                        if nm ~= "" and nm ~= "nil" then
-                            oldKey = nm
-                            keybindLabel.Text = (short[nm] or nm) .. " "
-                        end
-                    end
-                    function self:Get() return oldKey end
-                    self.Key = self.Get
-                    self.Instance = keybindButton
-                    return self
-                end
-
-                return elements
-            end
-
-            return sections
-        end
-
-        return tabs
-    end
-
-    return tabsections
-end
-
-return Library
-
-end)
-
-Library = (function()
--- ============================================================================
--- 0.48: ЯДРО UI = Neverlose UI (вшита выше как FUST_LG_FN, 76 КБ).
--- Полностью заменяет LiquidGlass (1.0 МБ -> 76 КБ, -92%).
--- Причины: LiquidGlass три версии подряд вешала исполнителя после плашки;
--- Neverlose не содержит ни одного блокирующего вызова.
--- Патчи P1-P12: touch-поддержка, объекты элементов, Multi-dropdown,
--- Label/Paragraph, безопасный CoreGui, красная тема бренда.
--- ============================================================================
-
--- прогресс-шаг для watchdog
-local function setProgress(text, color)
-        getgenv().FUST_STEP = text
-        pcall(function()
-                local lt = lwText
-                if lt and lt.Parent then
-                        lt.Text = text
-                        lt.TextColor3 = color or Color3.fromRGB(240, 130, 30)
-                end
-        end)
-end
-
--- запуск вшитой Neverlose UI (FUST_LG_FN объявлена выше, компилирована со скриптом)
-local LG = nil
-do
-        local t0 = os.clock()
-        print("[FUST] 2a/4: запуск Neverlose UI (76 КБ, без внешних запросов)...")
-        setProgress("2/4: запуск Neverlose UI...", Color3.fromRGB(120, 200, 120))
-        task.wait()
-        local okR, res = pcall(FUST_LG_FN)
-        if okR and type(res) == "table" then
-                LG = res
-                print("[FUST] 2b/4: Neverlose UI выполнилась за " .. string.format("%.2f", os.clock() - t0) .. " сек")
-        else
-                print("[FUST] Neverlose runtime: " .. tostring(res))
-        end
-        if not LG then
-                setProgress("2/4: Neverlose НЕ запустилась!", Color3.fromRGB(255, 80, 80))
-                error("[FUST] Встроенная Neverlose не выполнилась — скрин консоли в чат")
-        end
-end
-setProgress("2/4: Neverlose UI загружен, инициализация...", Color3.fromRGB(120, 200, 120))
-
--- глобал, который раньше давала старая библиотека
-MathClamp = math.clamp
-
-local Library = {}
-Library.LG = LG
-Library.Version = "0.49-Neverlose"
-Library.MenuKeybind = "RightControl"
-Library.Flags = {}
-Library.SetFlags = {}
-Library.Connections = {}
-
-Library.Folders = {
-        Directory = "Petuh",
-        Configs = "Petuh/Configs",
-        Assets = "Petuh/Assets",
-}
-pcall(function()
-        if type(makefolder) == "function" then
-                if not isfolder("Petuh") then makefolder("Petuh") end
-                if not isfolder("Petuh/Configs") then makefolder("Petuh/Configs") end
-        end
-end)
-
--- совместимая таблица темы (красный бренд FUST)
-local ACCENT_RED = Color3.fromRGB(255, 59, 48)
-Library.Theme = {
-        Background = Color3.fromRGB(9, 8, 13),
-        Outline = Color3.fromRGB(15, 23, 36),
-        Inline = Color3.fromRGB(26, 36, 48),
-        Accent = ACCENT_RED,
-        Text = Color3.fromRGB(234, 239, 245),
-        Element = Color3.fromRGB(0, 15, 30),
-}
-
--- собственный ScreenGui для оверлеев FUST (кнопка-петух, моб. кнопка)
-local function newHolder(name)
-        local gui = Instance.new("ScreenGui")
-        gui.Name = name
-        gui.ResetOnSpawn = false
-        gui.IgnoreGuiInset = true
-        gui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-        gui.DisplayOrder = 999999
-        pcall(function()
-                -- 0.49: напрямую в CoreGui не парентим (на части мобильных
-                -- экзекуторов блокирует поток) — только gethui, иначе PlayerGui ниже
-                local parent = (type(gethui) == "function" and gethui()) or nil
-                if parent then gui.Parent = parent end
-        end)
-        if not gui.Parent then
-                pcall(function()
-                        local P = game:GetService("Players")
-                        local lp = P and P.LocalPlayer
-                        local pg = lp and lp:FindFirstChildOfClass("PlayerGui")
-                        if pg then gui.Parent = pg end
-                end)
-        end
-        return { Instance = gui }
-end
-Library.Holder = newHolder("FUST_Holder")
-Library.UnusedHolder = newHolder("FUST_UnusedHolder")
-
-function Library:Connect(Event, Callback)
-        if not Event or type(Event.Connect) ~= "function" then return nil end
-        local c
-        pcall(function() c = Event:Connect(Callback) end)
-        if c then table.insert(Library.Connections, c) end
-        return c
-end
-
-function Library:Disconnect(Conn)
-        pcall(function() if Conn and Conn.Disconnect then Conn:Disconnect() end end)
-end
-
-function Library:Unload()
-        for _, c in ipairs(Library.Connections) do
-                pcall(function() c:Disconnect() end)
-        end
-        table.clear(Library.Connections)
-        pcall(function() Library.Holder.Instance:Destroy() end)
-        pcall(function() Library.UnusedHolder.Instance:Destroy() end)
-        pcall(function()
-                if Library.NLWindow and Library.NLWindow.SG then Library.NLWindow.SG:Destroy() end
-        end)
-end
-Library.Exit = Library.Unload
-
--- заглушки совместимости LG (цвета уже вшиты в Neverlose патчем P9)
-Library.LG.SetAccent = function() end
-Library.LG.SetThemeValue = function() end
-Library.LG.Destroy = function()
-        pcall(function()
-                if Library.NLWindow and Library.NLWindow.SG then Library.NLWindow.SG:Destroy() end
-        end)
-end
-Library.LG.ToggleKey = Enum.KeyCode.RightControl
-
--- ================= утилиты =================
-local function normKey(k)
-        if typeof(k) == "EnumItem" then return k end
-        if type(k) == "string" then
-                local name = string.match(k, "%.([%w]+)$") or k
-                if Enum.KeyCode[name] then return Enum.KeyCode[name] end
-        end
-        return k
-end
-
-local function colorFrom(v)
-        if typeof(v) == "Color3" then return v end
-        if type(v) == "string" then
-                local s = (v:sub(1, 1) == "#") and v or ("#" .. v)
-                local ok, c = pcall(Color3.fromHex, s)
-                if ok and c then return c end
-        elseif type(v) == "table" then
-                if (v[1] or 0) > 1 or (v[2] or 0) > 1 or (v[3] or 0) > 1 then
-                        return Color3.fromRGB(v[1] or 255, v[2] or 255, v[3] or 255)
-                end
-                return Color3.new(v[1] or 1, v[2] or 1, v[3] or 1)
-        end
-        return Color3.fromRGB(255, 255, 255)
-end
-
-local function pushFlag(w, flag, value)
-        if flag and flag ~= "" then
-                Library.Flags[flag] = value
-                Library.SetFlags[flag] = w
-        end
-end
-
--- конструкторы прикреплённых элементов (объявлены заранее для замыканий)
-local makeColorpicker, makeKeybind
-
--- ================= обёртка элемента =================
-local function wrapElement(nlObj, nlSec, kind, data)
-        data = data or {}
-        local flag = data.Flag
-        local w
-        w = {
-                Obj = nlObj,
-                Section = nlSec,
-                Kind = kind,
-                Title = data.Name or data.Title or "",
-                Value = nil,
-                Key = nil,
-                Color = nil,
-        }
-
-        function w:Set(v, silent)
-                pcall(function()
-                        if kind == "keybind" then
-                                v = normKey(v)
-                                if w.Obj and w.Obj.Set then w.Obj:Set(v) end
-                                w.Key = v
-                                pushFlag(w, flag, { Key = tostring(v), Mode = data.Mode or "Toggle" })
-                        elseif kind == "color" then
-                                v = colorFrom(v)
-                                if w.Obj and w.Obj.Set then w.Obj:Set(v, silent) end
-                                w.Color = v
-                                pushFlag(w, flag, { Color = "#" .. v:ToHex() })
-                        elseif kind == "label" then
-                                if w.Obj and w.Obj.SetText then w.Obj:SetText(tostring(v)) end
-                                w.Value = v
-                                pushFlag(w, flag, v)
-                        elseif kind == "paragraph" then
-                                if type(v) == "table" then
-                                        if w.Obj and w.Obj.Set then w.Obj:Set(v) end
-                                else
-                                        if w.Obj and w.Obj.Set then w.Obj:Set({ Content = tostring(v) }) end
-                                end
-                                w.Value = v
-                                pushFlag(w, flag, v)
-                        else
-                                if w.Obj and w.Obj.Set then w.Obj:Set(v, silent) end
-                                w.Value = v
-                                pushFlag(w, flag, v)
-                        end
-                end)
-        end
-
-        function w:SetText(t)
-                pcall(function() if w.Obj and w.Obj.SetText then w.Obj:SetText(tostring(t)) end end)
-                w.Title = t
-        end
-        w.SetTitle = w.SetText
-
-        function w:SetVisible(b)
-                pcall(function()
-                        if w.Obj and w.Obj.SetVisible then
-                                w.Obj:SetVisible(b)
-                        elseif w.Obj and w.Obj.Instance then
-                                w.Obj.Instance.Visible = b and true or false
-                        end
-                end)
-        end
-
-        function w:Destroy()
-                pcall(function()
-                        if w.Obj and w.Obj.Destroy then
-                                w.Obj:Destroy()
-                        elseif w.Obj and w.Obj.Instance then
-                                w.Obj.Instance:Destroy()
-                        end
-                end)
-        end
-
-        function w:Fire()
-                pcall(function() if w.Obj and w.Obj.Fire then w.Obj:Fire() end end)
-        end
-
-        -- прикреплённые элементы (как в старой библиотеке: Toggle:Colorpicker() и т.п.)
-        function w:Colorpicker(d)
-                d = d or {}
-                d.Name = d.Name or w.Title
-                return makeColorpicker(nlSec, d)
-        end
-
-        -- Keybind прикреплённый к Label: прячем Label, имя переносим в Keybind
-        function w:Keybind(d)
-                d = d or {}
-                if (w.Kind == "label" or w.Kind == "paragraph") and w.Title and (not d.Name or d.Name == "") then
-                        d.Name = w.Title
-                end
-                local kb = makeKeybind(nlSec, d)
-                if w.Kind == "label" or w.Kind == "paragraph" then
-                        pcall(function() if w.SetVisible then w:SetVisible(false) end end)
-                end
-                return kb
-        end
-
-        return w
-end
-
--- ================= конструкторы элементов (маппинг Fust -> Neverlose) =================
-local function makeToggle(sec, data)
-        data = data or {}
-        local userCb = data.Callback
-        local w
-        local obj = sec:Toggle({
-                text = data.Name or data.Title or "Toggle",
-                state = data.Default == nil and false or data.Default,
-                callback = function(v)
-                        if w then
-                                w.Value = v
-                                pushFlag(w, data.Flag, v)
-                        end
-                        if userCb then userCb(v) end
-                end,
-        })
-        w = wrapElement(obj, sec, "toggle", data)
-        w.Value = data.Default == nil and false or data.Default
-        pushFlag(w, data.Flag, w.Value)
-        return w
-end
-
-local function makeSlider(sec, data)
-        data = data or {}
-        local userCb = data.Callback
-        local w
-        local opts = {
-                text = data.Name or data.Title or "Slider",
-                min = data.Min or 0,
-                max = data.Max or 100,
-                default = data.Default or data.Min or 0,
-                callback = function(v)
-                        if w then
-                                w.Value = v
-                                pushFlag(w, data.Flag, v)
-                        end
-                        if userCb then userCb(v) end
-                end,
-        }
-        -- Fust Decimals = ШАГ слайдера (0.05, 5, 50); Neverlose float = шаг округления
-        if data.Decimals and data.Decimals > 0 then
-                opts.float = data.Decimals
-        end
-        local obj = sec:Slider(opts)
-        w = wrapElement(obj, sec, "slider", data)
-        w.Value = opts.default
-        pushFlag(w, data.Flag, opts.default)
-        return w
-end
-
-local function makeDropdown(sec, data)
-        data = data or {}
-        local userCb = data.Callback
-        local w
-        local items = data.Items or data.Values or {}
-        local opts = {
-                text = data.Name or data.Title or "Dropdown",
-                list = items,
-                multi = data.Multi == true,
-                default = data.Default,
-                callback = function(v)
-                        if w then
-                                w.Value = v
-                                pushFlag(w, data.Flag, v)
-                        end
-                        if userCb then userCb(v) end
-                end,
-        }
-        if opts.default == nil then
-                opts.default = (#items > 0 and items[1]) or ""
-        end
-        local obj = sec:Dropdown(opts)
-        w = wrapElement(obj, sec, "dropdown", data)
-        w.Value = data.Default
-        if data.Default ~= nil then
-                pushFlag(w, data.Flag, data.Default)
-        end
-        return w
-end
-
-makeKeybind = function(sec, data)
-        data = data or {}
-        local userCb = data.Callback
-        local onKey = data.OnKeyChanged
-        local w
-        local obj = sec:Keybind({
-                text = data.Name or data.Title or "Keybind",
-                default = normKey(data.Default or Enum.KeyCode.Unknown),
-                onkeychanged = function(keyName)
-                        key = normKey(keyName)
-                        if w then
-                                w.Key = key
-                                pushFlag(w, data.Flag, { Key = tostring(key), Mode = data.Mode or "Toggle" })
-                        end
-                        if onKey then onKey(key) end
-                end,
-                callback = function(keyName)
-                        if userCb then userCb(keyName) end
-                end,
-        })
-        w = wrapElement(obj, sec, "keybind", data)
-        w.Key = normKey(data.Default)
-        pushFlag(w, data.Flag, { Key = tostring(w.Key), Mode = data.Mode or "Toggle" })
-        return w
-end
-
-makeColorpicker = function(sec, data)
-        data = data or {}
-        local userCb = data.Callback
-        local w
-        local obj = sec:Colorpicker({
-                text = data.Name or data.Title or "Цвет",
-                color = colorFrom(data.Default),
-                callback = function(c)
-                        if w then
-                                w.Color = c
-                                pushFlag(w, data.Flag, { Color = "#" .. c:ToHex() })
-                        end
-                        if userCb then userCb(c) end
-                end,
-        })
-        w = wrapElement(obj, sec, "color", data)
-        w.Color = colorFrom(data.Default)
-        pushFlag(w, data.Flag, { Color = "#" .. w.Color:ToHex() })
-        return w
-end
-
-local function makeButton(sec, data)
-        data = data or {}
-        local obj = sec:Button({
-                text = data.Name or data.Title or "Button",
-                callback = data.Callback,
-        })
-        return wrapElement(obj, sec, "button", data)
-end
-
-local function makeLabel(sec, text)
-        local t = tostring(text or "")
-        local obj = sec:Label(t)
-        local w = wrapElement(obj, sec, "label", { Name = t })
-        w.Value = t
-        return w
-end
-
-local function makeTextbox(sec, data)
-        data = data or {}
-        local userCb = data.Callback
-        local w
-        local obj = sec:Textbox({
-                text = data.Name or data.Title or "Input",
-                value = data.Default or "",
-                callback = function(text)
-                        if w then
-                                w.Value = text
-                                pushFlag(w, data.Flag, text)
-                        end
-                        if userCb then userCb(text) end
-                end,
-        })
-        w = wrapElement(obj, sec, "input", data)
-        w.Value = data.Default or ""
-        if data.Default ~= nil then
-                pushFlag(w, data.Flag, data.Default)
-        end
-        return w
-end
-
-local function makeParagraph(sec, data)
-        if type(data) == "string" then data = { Content = data } end
-        data = data or {}
-        local obj = sec:Paragraph({
-                text = data.Name or data.Title or "",
-                content = data.Content or data.Text or "",
-        })
-        return wrapElement(obj, sec, "paragraph", data)
-end
-
--- ================= секция =================
-local SectionWrapper = {}
-SectionWrapper.__index = SectionWrapper
-
-local function newSection(nlSec)
-        local self = setmetatable({}, SectionWrapper)
-        self.NLSection = nlSec
-        -- 0.48 UPGRADE: раньше (LiquidGlass) Items["Content"].Instance был заглушкой и
-        -- вайтлист-панель с cfgStatus были НЕВИДИМЫ. Теперь отдаём реальный фрейм секции
-        -- Neverlose — кастомный UI (wlPanel, cfgStatus) реально отображается в секции.
-        self.Items = setmetatable({}, {
-                __index = function(_, k)
-                        if k == "Content" then
-                                local frame = nil
-                                pcall(function()
-                                        if nlSec and nlSec.Frame then frame = nlSec.Frame end
-                                end)
-                                return { Instance = frame }
-                        end
-                        return nil
-                end,
-        })
-        return self
-end
-
--- 0.48: ДЫХАНИЕ ПРИ МАССОВОЙ СБОРКЕ UI. Каждые 8 элементов отдаём поток
--- на кадр — инициализация больше не замораживает слабые телефоны целиком.
-local NL_ELEM_N = 0
-local function nlBreath()
-        NL_ELEM_N = NL_ELEM_N + 1
-        getgenv().FUST_ELEMS = NL_ELEM_N
-        if NL_ELEM_N % 8 == 0 then
-                task.wait()
-        end
-end
-
-function SectionWrapper:Toggle(d)
-        local r = makeToggle(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Slider(d)
-        local r = makeSlider(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Dropdown(d)
-        local r = makeDropdown(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Keybind(d)
-        local r = makeKeybind(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Colorpicker(d)
-        local r = makeColorpicker(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Button(d)
-        local r = makeButton(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Label(t)
-        local r = makeLabel(self.NLSection, t)
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Textbox(d)
-        local r = makeTextbox(self.NLSection, type(d) == "table" and d or { Name = tostring(d) })
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:Paragraph(d)
-        local r = makeParagraph(self.NLSection, d)
-        nlBreath()
-        return r
-end
-
-function SectionWrapper:SetTitle(t)
-        pcall(function() if self.NLSection and self.NLSection.SetTitle then self.NLSection:SetTitle(t) end end)
-end
-SectionWrapper.Set = SectionWrapper.SetTitle
-
-function SectionWrapper:SetVisible(b)
-        pcall(function()
-                if self.NLSection and self.NLSection.Frame then self.NLSection.Frame.Visible = b and true or false end
-        end)
-end
-
--- 0.48: Items["Content"] реализован per-instance в newSection (реальный фрейм секции)
-
--- ================= окно =================
-local function newWindow(nlWin)
-        local self = {}
-        self.LGWindow = nlWin
-        self.IsOpen = true
-        self.Pages = {}
-        self.Items = {}
-        self.TabSections = {} -- [PageName] = tabsection Neverlose
-
-        function self:Group()
-                -- группы навигации старой библиотеки — не поддерживаются, no-op
-        end
-
-        function self:IsOpenLive()
-                local ok, v = pcall(function() return nlWin.SG.Enabled end)
-                if ok and type(v) == "boolean" then return v end
-                return self.IsOpen
-        end
-
-        function self:SetOpen(b)
-                if b == nil then b = not self:IsOpenLive() end
-                pcall(function() nlWin.SG.Enabled = b and true or false end)
-                self.IsOpen = b and true or false
-        end
-
-        function self:Page(Data)
-                Data = Data or {}
-                local Page = { Name = Data.Name or "Page", Icon = Data.Icon, Tabs = {}, Win = self }
-
-                function Page:Section(SecData)
-                        SecData = SecData or {}
-                        local tabName = SecData.Tab or self.Name
-                        -- TabSection Neverlose — один на Page (создаётся лениво)
-                        local ts = self.Win.TabSections[self.Name]
-                        if not ts then
-                                pcall(function()
-                                        ts = nlWin:TabSection({ text = "" })
-                                        self.Win.TabSections[self.Name] = ts
-                                end)
-                        end
-                        -- вкладка Neverlose создаётся лениво: одна на уникальный Tab внутри Page
-                        local entry = self.Tabs[tabName]
-                        if not entry and ts then
-                                local okT, nlTab = pcall(function()
-                                        return ts:Tab({ text = tostring(tabName), icon = self.Icon })
-                                end)
-                                if okT and nlTab then
-                                        entry = nlTab
-                                        self.Tabs[tabName] = nlTab
-                                end
-                        end
-                        local nlSec = nil
-                        pcall(function()
-                                nlSec = entry:Section({ text = SecData.Name or "" })
-                        end)
-                        if not nlSec then
-                                -- фолбэк: невидимая секция-заглушка, чтобы UI не падал
-                                nlSec = { Frame = Instance.new("Frame") }
-                        end
-                        return newSection(nlSec)
-                end
-
-                table.insert(self.Pages, Page)
-                return Page
-        end
-
-        return self
-end
-
-function Library:Window(Data)
-        Data = Data or {}
-        local nlWin = LG:Window({ text = Data.Name or "ПЬЯНЫЙ ПЕТУХ" })
-        Library.NLWindow = nlWin
-        local win = newWindow(nlWin)
-
-        -- хоткей меню (RightControl по умолчанию; PETUH_MENU_KEY обновляется
-        -- через OnKeyChanged в настройках)
-        pcall(function()
-                local UIS = game:GetService("UserInputService")
-                Library:Connect(UIS.InputBegan, function(input, gp)
-                        if gp then return end
-                        local key = getgenv().PETUH_MENU_KEY or Enum.KeyCode.RightControl
-                        if input.KeyCode == key then
-                                win:SetOpen(not win:IsOpenLive())
-                        end
-                end)
-        end)
-
-        -- мобильная кнопка меню (иконка петуха, тап = открыть/закрыть)
-        pcall(function()
-                local UIS = game:GetService("UserInputService")
-                if UIS.TouchEnabled == true then
-                        local icon = PETUH_ICON_ASSET or "rbxassetid://134242818164054"
-                        local mbtn = Instance.new("ImageButton")
-                        mbtn.Name = "FUST_MobileMenu"
-                        mbtn.Image = icon
-                        mbtn.ScaleType = Enum.ScaleType.Fit
-                        mbtn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-                        mbtn.BackgroundTransparency = 0.25
-                        mbtn.BorderSizePixel = 0
-                        mbtn.Size = UDim2.fromOffset(44, 44)
-                        mbtn.Position = UDim2.new(0, 10, 0.5, -22)
-                        mbtn.Active = true
-                        mbtn.AutoButtonColor = false
-                        mbtn.Parent = Library.Holder.Instance
-                        local mc = Instance.new("UICorner")
-                        mc.CornerRadius = UDim.new(0, 8)
-                        mc.Parent = mbtn
-                        local ms = Instance.new("UIStroke")
-                        ms.Color = ACCENT_RED
-                        ms.Thickness = 1.5
-                        ms.Transparency = 0.3
-                        ms.Parent = mbtn
-                        -- drag пальцем + тап
-                        local mdrag, mstart, mpos, mmoved
-                        mbtn.InputBegan:Connect(function(input)
-                                if input.UserInputType == Enum.UserInputType.MouseButton1
-                                or input.UserInputType == Enum.UserInputType.Touch then
-                                        mdrag = true
-                                        mmoved = false
-                                        mstart = input.Position
-                                        mpos = mbtn.Position
-                                        input.Changed:Connect(function()
-                                                if input.UserInputState == Enum.UserInputState.End then mdrag = false end
-                                        end)
-                                end
-                        end)
-                        mbtn.InputChanged:Connect(function(input)
-                                if input.UserInputType == Enum.UserInputType.Touch
-                                or input.UserInputType == Enum.UserInputType.MouseMovement then
-                                        if mdrag then
-                                                local d = input.Position - mstart
-                                                if d.Magnitude > 8 then mmoved = true end
-                                                mbtn.Position = UDim2.new(mpos.X.Scale, mpos.X.Offset + d.X, mpos.Y.Scale, mpos.Y.Offset + d.Y)
-                                        end
-                                end
-                        end)
-                        mbtn.MouseButton1Click:Connect(function()
-                                if not mmoved then
-                                        win:SetOpen(not win:IsOpenLive())
-                                end
-                        end)
-                        -- отдаём в формате, который ждёт основной код:
-                        -- Window.LGWindow.MobileButton.Root
-                        nlWin.MobileButton = { Root = mbtn }
-                end
-        end)
-
-        return win
-end
-
--- ================= настройки =================
-function Library:CreateSettingsPage(Win)
-        task.delay(1, function()
-                local ok, err = pcall(function()
-                        local SettingsPage = Win:Page({ Name = "Settings", Icon = "rbxassetid://80758916183665" })
-
-                        -- кнопка-петух
-                        local MenuSection = SettingsPage:Section({ Name = "Кнопка меню", Tab = "Меню" })
-                        MenuSection:Toggle({
-                                Name = "Скрыть кнопку-петух (только хоткей)",
-                                Flag = "PetuhBtnHidden",
-                                Default = false,
-                                Callback = function(state)
-                                        if petuhSetBtnHidden then petuhSetBtnHidden(state) end
-                                end,
-                        })
-                        MenuSection:Label("Клавиша меню (назначить)"):Keybind({
-                                Name = "Клавиша открытия/закрытия меню",
-                                Flag = "PetuhMenuKey",
-                                Default = Enum.KeyCode.RightControl,
-                                Mode = "Toggle",
-                                Callback = function() end,
-                                OnKeyChanged = function(key)
-                                        pcall(function()
-                                                PETUH_MENU_KEY = key
-                                                Library.LG.ToggleKey = key
-                                                journal("МЕНЮ: клавиша = " .. tostring(key))
-                                        end)
-                                end,
-                        })
-                        pcall(function()
-                                if type(delfile) == "function" then pcall(delfile, "FUST_loadScreen_ON.txt") end
-                        end)
-                        MenuSection:Label("Кнопку можно перетащить в любое место.")
-
-                        -- окно
-                        local WinSection = SettingsPage:Section({ Name = "Окно", Tab = "Оформление" })
-                        WinSection:Button({
-                                Name = "Выгрузить скрипт (Unload)",
-                                Callback = function()
-                                        Library:Unload()
-                                end,
-                        })
-
-                        -- конфиги
-                        local ConfigsSection = SettingsPage:Section({ Name = "Configs", Tab = "Конфиги" })
-                        local ConfigName, ConfigSelected
                         local ConfigsDropdown
                         ConfigsDropdown = ConfigsSection:Dropdown({
                                 Name = "Configs",
@@ -1739,7 +167,7 @@ end)()
 -- блокировал поток на части мобильных экзекуторов; холдеры и так в gethui/PlayerGui
 print("[FUST] 3/4: Neverlose UI готов, создаю окно...")
 fustStep("3a: создание окна")
-task.wait() -- 0.48: вдох перед сборкой окна
+-- 0.50: yield убран — загрузка снова синхронная (как 0.43)
 -- 0.39v6: ИКОНКА ПЕТУХА — используем Roblox asset ID напрямую.
 -- getcustomasset убран — он детектится анти-читом ("Exploit detected;
 -- getcustomasset"). rbxassetid работает везде и не палится.
@@ -1875,7 +303,7 @@ journal("ОШИБКА UI '" .. stepName .. "': " .. tostring(err))
 end)
 table.insert(UI_ERRORS, stepName .. ": " .. tostring(err))
 end
-task.wait() -- 0.48: вдох после UI-блока — телефон не замерзает
+-- 0.50: yield убран — загрузка снова синхронная (как 0.43)
 end
 ICON_SETTINGS = "rbxassetid://80758916183665"
 ICON_COMBAT = "rbxassetid://87563802520297"
@@ -2015,6 +443,2465 @@ end)
 -- 0.39v16: yield убран — в v13 без него работало
 print("[FUST] 3/4: интерфейс создан, окно должно быть на экране")
 fustStep("3b: фичи и вкладки")
-task.wait() -- 0.48: вдох после сборки UI
+-- 0.50: yield убран — загрузка снова синхронная (как 0.43)
 S = {
 ESP = {
+Enabled = false,
+Box = false,
+Chams = false,
+ChamsTransparency = 0.5,
+Name = false,
+Item = false,
+Distance = false,
+HealthBar = false,
+MaxDistance = 1500,
+DistanceScale = true, 
+TeamCheck = false, 
+VisCheck = false, 
+VisHitbox = false, 
+},
+ESPColors = {
+Box = Color3.fromRGB(0, 255, 255),
+},
+Hitbox = { Enabled = false, Size = 5, Transparency = 0.7 },
+FullBright = false,
+NoDecoration = false,
+NoGrass = false,
+NoFog = false,
+Bullets = { Enabled = false, Style = "Луч", Width = 1.5, Transparency = 0, Fade = 1 },
+NPC = {
+ESP = false,
+CatGuards = true, 
+CatPeaceful = false, 
+CatAnimals = false, 
+CatSleepers = false, 
+DebugLog = false, 
+Box = false,
+Name = false,
+Item = false,
+Distance = false,
+HealthBar = false,
+Chams = false,
+ChamsTransparency = 0.5,
+MaxDistance = 3000,
+HitboxEnabled = false,
+HitboxSize = 5,
+HitboxTransparency = 0.7,
+HitboxAnimals = false, 
+HitboxSleepers = false, 
+},
+HUD = {
+Enabled = true,
+Size = 11, 
+BgTransparency = 0.35, 
+TextTransparency = 0, 
+Corner = "Лево-низ", 
+ShowTPS = true, 
+ShowBg = true, 
+-- 0.39: новые поля
+ColorBg = Color3.fromRGB(12, 12, 16),
+ColorText = Color3.fromRGB(235, 235, 240),
+ColorStroke = Color3.fromRGB(255, 170, 40),
+ShowAdmin = true, 
+Position = nil, -- {X=0.0..1.0, Y=0.0..1.0} — сохранённая позиция drag
+},
+Loot = {
+Enabled = false,
+Owner = true, 
+Slots = true, 
+Distance = true,
+Box = true,
+Chams = true, 
+MaxDistance = 1500,
+DebugLog = false, 
+},
+LootC = {
+Enabled = false,
+Name = true, 
+Distance = true,
+Box = true,
+MaxDistance = 800,
+Chams = false, 
+},
+}
+LOOT_COLOR = Color3.fromRGB(255, 70, 255)
+LOOTC_COLOR = Color3.fromRGB(255, 210, 0)
+CollectionService = game:GetService("CollectionService")
+NPC_COLOR = Color3.fromRGB(255, 145, 0) 
+NPC_CAT_COLORS = {
+Guard = Color3.fromRGB(255, 145, 0), 
+Peaceful = Color3.fromRGB(80, 255, 140), 
+Animal = Color3.fromRGB(255, 80, 95), 
+Sleeper = Color3.fromRGB(80, 190, 255), 
+}
+NPC_ANIMAL_TAGS = { "FustAnimal", "FustDino", "Animal" }
+NPC_NPC_TAGS = { "FustNpc", "Npc", "NPC" }
+SLEEPER_TAGS = { "FustSleeper", "Sleeper", "Sleeping", "FustSleeping", "OfflineBody", "PlayerBody", "FustBody" }
+SLEEPER_ATTRS = { "Sleeping", "IsSleeping", "Sleep", "Sleeper", "IsSleeper", "Offline", "IsOffline" }
+ANIMAL_PATTERNS = { "едвед", "олк", "лен", "абан", "bear", "wolf", "deer", "boar", "hog" }
+GUARD_PATTERNS = { "хранник", "храна", "вард", "guard", "андит", "ародер", "ейдер" }
+SLEEPER_PATTERNS = { "sleeper", "пящ" }
+WEAPON_PATTERNS = {
+"втомат", "интовк", "интор", "истолет", "робовик", "ужь", "арабин",
+"найперск", "улемет", "улемёт", "ранат", "ружи", "к-47",
+"меч", "сабл", "катан",
+"rifle", "pistol", "shotgun", "smg", "mp5", "m4a", "akm", "ak-47", "ak74",
+}
+npcCategoryCache = {} 
+npcHorizontalSince = {} 
+NPC_CAT_TTL = 0.75 
+function npcNameMatches(model, patterns)
+local okN, name = pcall(function()
+return string.lower(tostring(model.Name))
+end)
+if not okN then
+return false
+end
+for _, pat in ipairs(patterns) do
+if string.find(name, pat, 1, true) then
+return true
+end
+end
+return false
+end
+function npcHasAnyTag(model, tags)
+for _, tag in ipairs(tags) do
+local okT, has = pcall(CollectionService.HasTag, CollectionService, model, tag)
+if okT and has then
+return true
+end
+end
+return false
+end
+function npcInsideFolder(model, names)
+local p = model.Parent
+local depth = 0
+while p and p ~= Workspace and depth < 8 do
+for _, n in ipairs(names) do
+if p.Name == n then
+return true
+end
+end
+p = p.Parent
+depth = depth + 1
+end
+return false
+end
+function npcHasWeaponInHands(model)
+local okT, tool = pcall(function()
+return model:FindFirstChildOfClass("Tool")
+end)
+if okT and tool then
+local okN, tname = pcall(function()
+return string.lower(tostring(tool.Name))
+end)
+if okN and tname then
+for _, pat in ipairs(WEAPON_PATTERNS) do
+if string.find(tname, pat, 1, true) then
+return true
+end
+end
+end
+end
+return false
+end
+function npcSleeperMarked(model, hum, root)
+if npcHasAnyTag(model, SLEEPER_TAGS) then
+return true
+end
+if npcInsideFolder(model, { "Sleepers", "Sleeper", "Bodies", "SleepingPlayers", "Спящие" }) then
+return true
+end
+for _, inst in ipairs({ model, hum, root }) do
+if inst then
+for _, attr in ipairs(SLEEPER_ATTRS) do
+local okA, v = pcall(inst.GetAttribute, inst, attr)
+if okA and v == true then
+return true
+end
+end
+end
+end
+local okC, children = pcall(model.GetChildren, model)
+if okC and children then
+for _, child in ipairs(children) do
+if child:IsA("BoolValue") then
+local cn = string.lower(tostring(child.Name))
+if (string.find(cn, "sleep", 1, true) or string.find(cn, "пящ", 1, true))
+and child.Value == true then
+return true
+end
+end
+end
+end
+if npcNameMatches(model, SLEEPER_PATTERNS) then
+return true
+end
+return false
+end
+function npcGetCategory(model, hum, root)
+local now = os.clock()
+local cached = npcCategoryCache[model]
+if cached and cached.Cat and cached.Expire > now then
+local on = (
+(cached.Cat == "Guard" and S.NPC.CatGuards)
+or (cached.Cat == "Peaceful" and S.NPC.CatPeaceful)
+or (cached.Cat == "Animal" and S.NPC.CatAnimals)
+or (cached.Cat == "Sleeper" and S.NPC.CatSleepers)
+) and true or false
+return cached.Cat, on, NPC_CAT_COLORS[cached.Cat] or NPC_COLOR
+end
+local cat
+local inNpcFolder = npcInsideFolder(model, { "Npcs", "NPCs", "NPC" })
+or npcHasAnyTag(model, NPC_NPC_TAGS)
+local inAnimalFolder = npcInsideFolder(model, { "Animals", "Animal" })
+or npcHasAnyTag(model, NPC_ANIMAL_TAGS)
+if inAnimalFolder or npcNameMatches(model, ANIMAL_PATTERNS) then
+cat = "Animal"
+elseif inNpcFolder then
+if npcNameMatches(model, GUARD_PATTERNS) or npcHasWeaponInHands(model) then
+cat = "Guard"
+else
+cat = "Peaceful"
+end
+else
+if npcSleeperMarked(model, hum, root) then
+cat = "Sleeper"
+else
+local okU, upDot = pcall(function()
+return root and root.CFrame.UpVector:Dot(Vector3.new(0, 1, 0)) or 1
+end)
+if okU and upDot and upDot < 0.47 then
+if not npcHorizontalSince[model] then
+npcHorizontalSince[model] = now
+end
+if now - npcHorizontalSince[model] >= 4 then
+cat = "Sleeper"
+end
+else
+npcHorizontalSince[model] = nil
+end
+if not cat and (npcNameMatches(model, GUARD_PATTERNS) or npcHasWeaponInHands(model)) then
+cat = "Guard"
+end
+if not cat then
+cat = "Peaceful"
+end
+end
+end
+npcCategoryCache[model] = { Cat = cat, Expire = now + NPC_CAT_TTL }
+local on = (
+(cat == "Guard" and S.NPC.CatGuards)
+or (cat == "Peaceful" and S.NPC.CatPeaceful)
+or (cat == "Animal" and S.NPC.CatAnimals)
+or (cat == "Sleeper" and S.NPC.CatSleepers)
+) and true or false
+return cat, on, NPC_CAT_COLORS[cat] or NPC_COLOR
+end
+Whitelist = {} 
+FUST_BulletsSet = nil 
+HitboxAnnouncePending = false 
+NpcHitboxAnnouncePending = false 
+NpcHitboxAppliedCount = 0 
+AntiRecoil = {
+Enabled = false, 
+Rollback = true, 
+Offset = true, 
+Drift = true, 
+DriftStrength = 1, 
+Threshold = 1.2, 
+}
+AR_SnapCF = nil 
+AR_LastStateJournal = 0 
+AR_LastPitch = nil 
+AR_DriftFrames = 0 
+AR_AimBusyUntil = 0 
+AR_Anchor = nil 
+AR_LastDriftAt = 0 
+FUST_FireUntil = 0 
+FUST_FireTool = nil 
+FUST_FireConns = nil 
+AntiShake = {
+Enabled = false, 
+Roll = true, 
+Position = true, 
+Oscillation = true, 
+}
+AS_SmoothPos = nil 
+AS_LastRawPitch = nil 
+AS_LastLX, AS_LastLZ = nil, nil 
+AS_LastDp, AS_LastDy = nil, nil 
+AS_PitchFlips, AS_YawFlips = 0, 0 
+AS_AnchorLook = nil 
+AS_LastShakeAt = 0 
+COLOR_WHITELIST = Color3.fromRGB(0, 255, 0)
+COLOR_DEFAULT = Color3.fromRGB(255, 255, 255)
+UIRegistry.ESPEnabled = EspSection:Toggle({
+Name = "ESP Enabled",
+Flag = "ESPEnabled",
+Default = false,
+Callback = function(state)
+S.ESP.Enabled = state
+journal("ESP " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.ESPBox = EspSection:Toggle({
+Name = "ESP Box",
+Flag = "ESPBox",
+Default = false,
+Callback = function(state)
+S.ESP.Box = state
+end
+})
+UIRegistry.ESPBoxColor = UIRegistry.ESPBox:Colorpicker({
+Flag = "ESPBoxColor",
+Default = S.ESPColors.Box,
+Callback = function(color)
+S.ESPColors.Box = color
+end
+})
+UIRegistry.ESPChams = EspSection:Toggle({
+Name = "ESP Chams",
+Flag = "ESPChams",
+Default = false,
+Callback = function(state)
+S.ESP.Chams = state
+journal("ЧАМСЫ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.ESPChamsTransparency = EspSection:Slider({
+Name = "Прозрачность чамсов",
+Flag = "ESPChamsTransparency",
+Default = 0.5,
+Min = 0,
+Max = 1,
+Decimals = 0.05,
+Suffix = "",
+Callback = function(Value)
+S.ESP.ChamsTransparency = Value
+end
+})
+UIRegistry.ESPName = EspSection:Toggle({
+Name = "ESP Name",
+Flag = "ESPName",
+Default = false,
+Callback = function(state)
+S.ESP.Name = state
+end
+})
+UIRegistry.ESPDistance = EspSection:Toggle({
+Name = "ESP Distance",
+Flag = "ESPDistance",
+Default = false,
+Callback = function(state)
+S.ESP.Distance = state
+end
+})
+UIRegistry.ESPItem = EspSection:Toggle({
+Name = "ESP Предмет (что в руках)",
+Flag = "ESPItem",
+Default = false,
+Callback = function(state)
+S.ESP.Item = state
+journal("ПРЕДМЕТ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+-- 0.39: цвет предмета в руках
+ESPItemColor = Color3.fromRGB(255, 215, 90)
+UIRegistry.ESPItemColor = EspSection:Label("Цвет предмета в руках"):Colorpicker({
+Name = "Цвет предмета в руках",
+Flag = "ESPItemColor",
+Default = ESPItemColor,
+Callback = function(c)
+ESPItemColor = c
+end
+})
+-- 0.39: перевод названий предметов на русский (вкл/выкл)
+-- 0.39v6: расширено под Rust (FUST Survival — раст-подобная игра)
+ItemRuTranslate = false
+ITEM_RU_DICT = {
+-- оружие дальнобойное
+["ak-47"] = "АК-47", ["ak47"] = "АК-47", ["akm"] = "АКМ", ["ak-74"] = "АК-74",
+["m4a1"] = "М4А1", ["m4a4"] = "М4А4", ["m4"] = "М4", ["m16"] = "М16",
+["mp5"] = "МП5", ["ump45"] = "УМП-45", ["p90"] = "П90", ["mac-10"] = "МАК-10",
+["thompson"] = "Томпсон", ["custom smg"] = "Кастомный ПП", ["vector"] = "Вектор",
+["awp"] = "АВП", ["awm"] = "АВМ", ["mosin"] = "Мосина", ["kar98"] = "Кар98",
+["bolt rifle"] = "Винтовка с продольным затвором", ["l96"] = "Л96",
+["semi-auto rifle"] = "Полуавтоматическая винтовка", ["sar"] = "САВ",
+["shotgun"] = "Дробовик", ["pump shotgun"] = "Помповый дробовик",
+["auto shotgun"] = "Авто-дробовик", ["double barrel"] = "Двустволка",
+["spas-12"] = "СПАС-12", ["m870"] = "М870", ["sawn off"] = "Обрез",
+["pistol"] = "Пистолет", ["glock"] = "Глок", ["deagle"] = "Дезерт Игл",
+["revolver"] = "Револьвер", ["sniper"] = "Снайперка", ["rifle"] = "Винтовка",
+["smg"] = "Пистолет-пулемёт", ["lmg"] = "Пулемёт",
+["m249"] = "М249", ["rp"] = "РП", ["bolt action"] = "Болтовка",
+["crossbow"] = "Арбалет", ["bow"] = "Лук", ["compound bow"] = "Блочный лук",
+-- патроны
+["9mm"] = "9мм патроны", ["45acp"] = ".45 патроны", ["556"] = "5.56 патроны",
+["5.56"] = "5.56 патроны", ["762"] = "7.62 патроны", ["7.62"] = "7.62 патроны",
+["12gauge"] = "12 калибр", ["12 gauge"] = "12 калибр", ["shells"] = "Патроны",
+["ammo"] = "Патроны", ["magazine"] = "Магазин",
+["12.7mm"] = "12.7мм патроны", ["308"] = ".308 патроны",
+["arrow"] = "Стрела", ["bolts"] = "Болты",
+-- еда/вода (Rust)
+["water"] = "Вода", ["water bottle"] = "Бутылка воды", ["cola"] = "Кола",
+["bottled water"] = "Бутылка воды", ["water jug"] = "Канистра воды",
+["water barrel"] = "Бочка воды", ["salt water"] = "Солёная вода",
+["bread"] = "Хлеб", ["can"] = "Консерва", ["canned food"] = "Консерва",
+["meat"] = "Мясо", ["cooked meat"] = "Жареное мясо", ["raw meat"] = "Сырое мясо",
+["bear meat"] = "Медвежатина", ["wolf meat"] = "Волчатина", ["chicken meat"] = "Курица",
+["deer meat"] = "Оленина", ["boar meat"] = "Кабанина",
+["apple"] = "Яблоко", ["banana"] = "Банан", ["chocolate"] = "Шоколад",
+["energy bar"] = "Энергетический батончик", ["granola bar"] = "Гранола",
+["corn"] = "Кукуруза", ["potato"] = "Картофель", ["pumpkin"] = "Тыква",
+["mushroom"] = "Гриб", ["berries"] = "Ягоды",
+["cooked corn"] = "Варёная кукуруза", ["cooked potato"] = "Варёная картошка",
+["fish"] = "Рыба", ["cooked fish"] = "Жареная рыба",
+["small water bottle"] = "Малая бутылка воды", ["large water bottle"] = "Большая бутылка воды",
+-- броня (Rust)
+["helmet"] = "Шлем", ["kevlar"] = "Кевлар", ["vest"] = "Жилет",
+["armor"] = "Броня", ["bulletproof vest"] = "Бронежилет",
+["metal helmet"] = "Металлический шлем", ["metal vest"] = "Металлический жилет",
+["road sign helmet"] = "Шлем из дорожного знака", ["road sign vest"] = "Жилет из дорожного знака",
+["coconut helmet"] = "Кокосовый шлем", ["wood helmet"] = "Деревянный шлем",
+["bone helmet"] = "Костяной шлем", ["bone vest"] = "Костяной жилет",
+["coffee can helmet"] = "Шлем из кофейной банки",
+-- лут/ресурсы (Rust)
+["wood"] = "Дерево", ["stone"] = "Камень", ["metal"] = "Металл",
+["metal fragments"] = "Металлические фрагменты", ["metal ore"] = "Руда металла",
+["cloth"] = "Ткань", ["rope"] = "Верёвка", ["duct tape"] = "Скотч",
+["bandage"] = "Бинт", ["medkit"] = "Аптечка", ["painkiller"] = "Обезболивающее",
+["blood bag"] = "Пакет крови", ["syringe"] = "Шприц",
+["wood planks"] = "Доски", ["wooden planks"] = "Доски",
+["stone ore"] = "Каменная руда", ["sulfur ore"] = "Серная руда",
+["sulfur"] = "Сера", ["charcoal"] = "Древесный уголь",
+["gunpowder"] = "Порох", ["explosives"] = "Взрывчатка",
+["low grade fuel"] = "Низкосортное топливо", ["fuel"] = "Топливо",
+["crude oil"] = "Сырая нефть", ["oil"] = "Нефть",
+["hemp"] = "Конопля", ["hemp fiber"] = "Конопляное волокно",
+["scrap"] = "Хлам", ["metal pipe"] = "Металлическая труба",
+["sewing kit"] = "Швейный набор",
+["gears"] = "Шестерёнки", ["springs"] = "Пружины",
+["rifle body"] = "Корпус винтовки", ["smg body"] = "Корпус ПП",
+["semi auto body"] = "Корпус полуавтомата",
+-- инструменты (Rust)
+["pickaxe"] = "Кирка", ["hatchet"] = "Топорик", ["hammer"] = "Молоток",
+["screwdriver"] = "Отвёртка", ["wrench"] = "Гаечный ключ",
+["lockpick"] = "Отмычка", ["flashlight"] = "Фонарик",
+["map"] = "Карта", ["compass"] = "Компас", ["radio"] = "Радио",
+["binoculars"] = "Бинокль", ["scope"] = "Прицел",
+["chainsaw"] = "Бензопила", ["jackhammer"] = "Отбойный молоток",
+["bone club"] = "Костяная дубина", ["stone pickaxe"] = "Каменная кирка",
+["stone hatchet"] = "Каменный топор", ["metal pickaxe"] = "Металлическая кирка",
+["metal hatchet"] = "Металлический топор",
+["salvaged hammer"] = "Восстановленный молоток", ["salvaged axe"] = "Восстановленный топор",
+["salvaged cleaver"] = "Восстановленный тесак", ["salvaged sword"] = "Восстановленный меч",
+-- холодное оружие
+["machete"] = "Мачете", ["knife"] = "Нож", ["sword"] = "Меч", ["katana"] = "Катана",
+["axe"] = "Топор", ["bat"] = "Бита", ["crowbar"] = "Лом",
+["bone knife"] = "Костяной нож", ["stone spear"] = "Каменное копьё",
+["wooden spear"] = "Деревянное копьё", ["metal spear"] = "Металлическое копьё",
+["longsword"] = "Длинный меч", ["mace"] = "Булава",
+-- расходники
+["backpack"] = "Рюкзак", ["small backpack"] = "Маленький рюкзак",
+["big backpack"] = "Большой рюкзак", ["medium backpack"] = "Средний рюкзак",
+["large backpack"] = "Большой рюкзак",
+["small bag"] = "Маленькая сумка", ["leather bag"] = "Кожаная сумка",
+-- медицина (Rust)
+["large bandage"] = "Большой бинт",
+["medical syringe"] = "Медицинский шприц", ["anti-rad pills"] = "Анти-рад таблетки",
+["antirad pills"] = "Анти-рад таблетки", ["radiation pills"] = "Противорадиационные таблетки",
+-- расходники для базы (Rust)
+["wood wall"] = "Деревянная стена", ["stone wall"] = "Каменная стена",
+["metal wall"] = "Металлическая стена", ["armored wall"] = "Бронированная стена",
+["wood door"] = "Деревянная дверь", ["metal door"] = "Металлическая дверь",
+["key lock"] = "Замок с ключом", ["code lock"] = "Кодовый замок",
+["wood ladder"] = "Деревянная лестница", ["wood stairs"] = "Деревянные ступени",
+["toolbox"] = "Ящик с инструментами", ["wood box"] = "Деревянный ящик",
+["large wood box"] = "Большой деревянный ящик", ["storage box"] = "Ящик для хранения",
+["vending machine"] = "Торговый автомат",
+-- гранаты/взрывчатка (Rust)
+["grenade"] = "Граната", ["frag grenade"] = "Осколочная граната",
+["flashbang"] = "Светошумовая", ["smoke"] = "Дымовая",
+["molotov"] = "Коктейль Молотова", ["incendiary grenade"] = "Зажигательная граната",
+["c4"] = "С4", ["satchel charge"] = "Разрывной заряд",
+["timed explosive"] = "Тайм-взрывчатка", ["rocket"] = "Ракета",
+["rockets"] = "Ракеты", ["rocket launcher"] = "Ракетница",
+}
+function translateItemName(name)
+if not ItemRuTranslate or type(name) ~= "string" then
+return name
+end
+local nl = string.lower(name)
+-- точное совпадение
+if ITEM_RU_DICT[nl] then
+return ITEM_RU_DICT[nl]
+end
+-- частичное совпадение по подстроке
+for eng, rus in pairs(ITEM_RU_DICT) do
+if string.find(nl, eng, 1, true) then
+return rus
+end
+end
+return name
+end
+UIRegistry.ItemRuTranslate = EspSection:Toggle({
+Name = "Перевод названий на русский",
+Flag = "ItemRuTranslate",
+Default = false,
+Callback = function(state)
+ItemRuTranslate = state
+journal("ПЕРЕВОД ПРЕДМЕТОВ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.BulletsEnabled = TracerSection:Toggle({
+Name = "Трассеры пуль (стиль VOMAGLA)",
+Flag = "BulletsEnabled",
+Default = false,
+Callback = function(state)
+S.Bullets.Enabled = state
+if FUST_BulletsSet then
+pcall(FUST_BulletsSet, state)
+end
+journal("ТРАССЕРЫ " .. (state and "ВКЛ" or "ВЫКЛ"))
+print("[FUST] Трассеры пуль " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.BulletsStyle = TracerSection:Dropdown({
+Name = "Трассеры: стиль луча",
+Items = { "Луч", "Квадратный", "Молния", "Сердцебиение", "Цепь", "Глитч", "Вихрь" },
+Flag = "BulletsStyle",
+Default = "Луч",
+Callback = function(Value)
+S.Bullets.Style = Value
+journal("ТРАССЕРЫ-СТИЛЬ " .. tostring(Value))
+end
+})
+UIRegistry.BulletsWidth = TracerSection:Slider({
+Name = "Трассеры: толщина",
+Flag = "BulletsWidth",
+Default = 1.5,
+Min = 0.5,
+Max = 5,
+Decimals = 0.5,
+Suffix = "ст",
+Callback = function(Value)
+S.Bullets.Width = Value
+end
+})
+UIRegistry.BulletsTransparency = TracerSection:Slider({
+Name = "Трассеры: прозрачность",
+Flag = "BulletsTransparency",
+Default = 0,
+Min = 0,
+Max = 0.9,
+Decimals = 0.05,
+Callback = function(Value)
+S.Bullets.Transparency = Value
+end
+})
+UIRegistry.BulletsFade = TracerSection:Slider({
+Name = "Трассеры: затухание",
+Flag = "BulletsFade",
+Default = 1,
+Min = 0.5,
+Max = 5,
+Decimals = 0.1,
+Suffix = "с",
+Callback = function(Value)
+S.Bullets.Fade = Value
+end
+})
+UIRegistry.ESPHealthBar = EspSection:Toggle({
+Name = "ESP HealthBar",
+Flag = "ESPHealthBar",
+Default = false,
+Callback = function(state)
+S.ESP.HealthBar = state
+end
+})
+UIRegistry.ESPMaxDistance = EspSection:Slider({
+Name = "Max Distance",
+Flag = "ESPMaxDistance",
+Default = 3000,
+Min = 100,
+Max = 5000,
+Decimals = 50,
+Suffix = "m",
+Callback = function(Value)
+S.ESP.MaxDistance = Value
+end
+})
+UIRegistry.ESPDistanceScale = EspSection:Toggle({
+Name = "Сжатие ESP по дистанции (дальше = мельче)",
+Flag = "ESPDistanceScale",
+Default = true,
+Callback = function(state)
+S.ESP.DistanceScale = state
+journal("ESP СЖАТИЕ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+espVisCacheClear = function() end
+UIRegistry.ESPVisCheck = EspSection:Toggle({
+Name = "Проверка видимости (за стеной — серый)",
+Flag = "ESPVisCheck",
+Default = false,
+Callback = function(state)
+S.ESP.VisCheck = state
+espVisCacheClear()
+journal("ESP ВИДИМОСТЬ " .. (state and "ВКЛ (за стеной — серый + «СТЕНА»)" or "ВЫКЛ"))
+end
+})
+UIRegistry.ESPVisHitbox = EspSection:Toggle({
+Name = "Показывать хитбокс-доступ (жёлтый, если торчит)",
+Flag = "ESPVisHitbox",
+Default = false,
+Callback = function(state)
+S.ESP.VisHitbox = state
+espVisCacheClear()
+journal("ESP ХИТБОКС-ДОСТУП " .. (state and "ВКЛ (жёлтый = виден только хитбокс)" or "ВЫКЛ"))
+end
+})
+EspSection:Label("Видимость смотрит ТЕЛО (хитбоксы игнор). Жёлтый = тело за стеной, но хитбокс торчит. Серый + «СТЕНА» = не подстрелить.")
+HudSection = EspPage:Section({ Name = "HUD на экране", Tab = "ESP", Side = 2 })
+hudGui = nil 
+hudFrame = nil 
+hudStroke = nil
+hudLineFPS, hudLinePing, hudLineTPS, hudLinePlayers, hudLineAdmin = nil, nil, nil, nil, nil
+hudConns = {} 
+hudDragging = false
+hudDragStart, hudFrameStart = nil, nil
+HUD_MARGIN = 12
+function hudSnap(corner)
+if not hudFrame then
+return
+end
+local ax = (corner and string.find(corner, "Право", 1, true)) and 1 or 0
+local ay = (corner and string.find(corner, "верх", 1, true)) and 0 or 1
+local ox = (ax == 1) and -HUD_MARGIN or HUD_MARGIN
+local oy = (ay == 1) and -HUD_MARGIN or HUD_MARGIN
+hudFrame.AnchorPoint = Vector2.new(ax, ay)
+hudFrame.Position = UDim2.new(ax, ox, ay, oy)
+end
+function hudApplyStyle()
+if not hudFrame then
+return
+end
+local size = math.clamp(math.floor((S.HUD.Size or 11) + 0.5), 8, 16)
+local textT = math.clamp(S.HUD.TextTransparency or 0, 0, 0.9)
+local colText = S.HUD.ColorText or Color3.fromRGB(235, 235, 240)
+local colBg = S.HUD.ColorBg or Color3.fromRGB(12, 12, 16)
+local colStroke = S.HUD.ColorStroke or Color3.fromRGB(255, 170, 40)
+for _, line in ipairs({ hudLineFPS, hudLinePing, hudLineTPS, hudLinePlayers, hudLineAdmin }) do
+if line then
+line.TextSize = size
+line.TextTransparency = textT
+line.TextColor3 = (line == hudLineAdmin) and Color3.fromRGB(255, 80, 80) or colText
+end
+end
+local bg = math.clamp(S.HUD.BgTransparency or 0.35, 0, 0.95)
+if S.HUD.ShowBg then
+hudFrame.BackgroundTransparency = bg
+hudFrame.BackgroundColor3 = colBg
+if hudStroke then
+hudStroke.Transparency = math.clamp(bg + 0.25, 0, 1)
+hudStroke.Color = colStroke
+end
+else
+hudFrame.BackgroundTransparency = 1
+if hudStroke then
+hudStroke.Transparency = 1
+end
+end
+if hudLineTPS then
+hudLineTPS.Visible = S.HUD.ShowTPS and true or false
+end
+if hudLineAdmin then
+hudLineAdmin.Visible = S.HUD.ShowAdmin and true or false
+end
+end
+function hudDestroy()
+for _, c in ipairs(hudConns) do
+pcall(function()
+c:Disconnect()
+end)
+end
+hudConns = {}
+if hudGui then
+pcall(function()
+hudGui:Destroy()
+end)
+end
+hudGui = nil
+hudFrame = nil
+hudStroke = nil
+hudLineFPS, hudLinePing, hudLineTPS, hudLinePlayers, hudLineAdmin = nil, nil, nil, nil, nil
+hudDragging = false
+end
+function hudEnsure()
+if hudFrame then
+return
+end
+local okGui = pcall(function()
+local parentGui = (type(gethui) == "function") and gethui()
+if not parentGui then
+local lph = game:GetService("Players").LocalPlayer
+parentGui = lph and lph:FindFirstChildOfClass("PlayerGui")
+end
+hudGui = Instance.new("ScreenGui")
+hudGui.Name = "PetuhHUD"
+hudGui.ResetOnSpawn = false
+hudGui.IgnoreGuiInset = true
+hudGui.DisplayOrder = 9999
+hudGui.Parent = parentGui
+hudFrame = Instance.new("Frame")
+hudFrame.Name = "Panel"
+hudFrame.Active = true
+hudFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 16)
+hudFrame.BorderSizePixel = 0
+hudFrame.AutomaticSize = Enum.AutomaticSize.XY
+hudFrame.Size = UDim2.new(0, 0, 0, 0)
+hudFrame.Parent = hudGui
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = hudFrame
+hudStroke = Instance.new("UIStroke")
+hudStroke.Color = Color3.fromRGB(255, 170, 40)
+hudStroke.Transparency = 0.6
+hudStroke.Parent = hudFrame
+local layout = Instance.new("UIListLayout")
+layout.FillDirection = Enum.FillDirection.Vertical
+layout.Padding = UDim.new(0, 2)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = hudFrame
+local pad = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 6)
+pad.PaddingBottom = UDim.new(0, 6)
+pad.PaddingLeft = UDim.new(0, 9)
+pad.PaddingRight = UDim.new(0, 9)
+pad.Parent = hudFrame
+local order = 0
+local function makeLine(text)
+order = order + 1
+local label = Instance.new("TextLabel")
+label.Name = "L" .. order
+label.BackgroundTransparency = 1
+label.Font = Enum.Font.Code
+label.Text = text
+label.TextColor3 = Color3.fromRGB(235, 235, 240)
+label.TextXAlignment = Enum.TextXAlignment.Left
+label.AutomaticSize = Enum.AutomaticSize.XY
+label.Size = UDim2.new(0, 0, 0, 0)
+label.LayoutOrder = order
+label.Parent = hudFrame
+return label
+end
+hudLineFPS = makeLine("FPS —")
+hudLinePing = makeLine("Пинг —")
+hudLineTPS = makeLine("ТПС —")
+hudLinePlayers = makeLine("Игроки —")
+hudLineAdmin = makeLine("АДМИН —")
+end)
+if not okGui or not hudFrame then
+warn("[FUST] HUD не создался в этом экзекуторе")
+hudDestroy()
+return
+end
+-- 0.39: восстановление сохранённой позиции drag, иначе угол
+pcall(function()
+if S.HUD.Position and type(S.HUD.Position) == "table" then
+hudFrame.AnchorPoint = Vector2.new(0, 0)
+hudFrame.Position = UDim2.new(S.HUD.Position.X, 0, S.HUD.Position.Y, 0)
+else
+hudSnap(S.HUD.Corner)
+end
+end)
+hudApplyStyle()
+hudFrame.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1
+or input.UserInputType == Enum.UserInputType.Touch then
+hudDragging = true
+hudDragStart = input.Position
+local topLeft = hudFrame.AbsolutePosition
+hudFrame.AnchorPoint = Vector2.new(0, 0)
+hudFrameStart = Vector2.new(topLeft.X, topLeft.Y)
+hudFrame.Position = UDim2.fromOffset(topLeft.X, topLeft.Y)
+input.Changed:Connect(function()
+if input.UserInputState == Enum.UserInputState.End
+or input.UserInputState == Enum.UserInputState.Cancel then
+hudDragging = false
+end
+end)
+end
+end)
+hudFrame.InputEnded:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1
+or input.UserInputType == Enum.UserInputType.Touch then
+hudDragging = false
+end
+end)
+table.insert(hudConns, UserInputService.InputChanged:Connect(function(input)
+if not hudDragging then
+return
+end
+if input.UserInputType == Enum.UserInputType.MouseMovement
+or input.UserInputType == Enum.UserInputType.Touch then
+if hudDragStart and hudFrameStart and hudFrame then
+local cam = Workspace.CurrentCamera
+local view = cam and cam.ViewportSize or Vector2.new(1280, 720)
+local w = hudFrame.AbsoluteSize.X
+local h = hudFrame.AbsoluteSize.Y
+local nx = math.clamp(hudFrameStart.X + (input.Position.X - hudDragStart.X), 0, math.max(view.X - w, 0))
+local ny = math.clamp(hudFrameStart.Y + (input.Position.Y - hudDragStart.Y), 0, math.max(view.Y - h, 0))
+hudFrame.Position = UDim2.fromOffset(nx, ny)
+-- 0.39: сохраняем относительную позицию для восстановления после рестарта
+if view.X > 0 and view.Y > 0 then
+S.HUD.Position = { X = nx / view.X, Y = ny / view.Y }
+end
+end
+end
+end))
+local frames = 0
+local fpsAccum = 0
+local fpsValue = 0
+local lastServerT = nil
+local lastRealT = nil
+local tpsEMA = nil
+local uiAccum = 0
+table.insert(hudConns, RunService.RenderStepped:Connect(function(dt)
+frames = frames + 1
+fpsAccum = fpsAccum + dt
+if fpsAccum >= 1 then
+fpsValue = math.floor(frames / fpsAccum + 0.5)
+frames = 0
+fpsAccum = 0
+end
+local okT, serverT = pcall(function()
+return Workspace:GetServerTimeNow()
+end)
+if okT and type(serverT) == "number" then
+if lastServerT and lastRealT then
+local dReal = os.clock() - lastRealT
+if dReal >= 1 then
+local dServer = serverT - lastServerT
+local tps = dServer / dReal
+if tps >= 0 and tps <= 61 then
+tpsEMA = tpsEMA and (tpsEMA * 0.6 + tps * 0.4) or tps
+end
+lastServerT = serverT
+lastRealT = os.clock()
+end
+else
+lastServerT = serverT
+lastRealT = os.clock()
+end
+end
+uiAccum = uiAccum + dt
+if uiAccum >= 0.35 then
+uiAccum = 0
+if hudLineFPS then
+hudLineFPS.Text = "FPS " .. tostring(fpsValue)
+end
+if hudLinePing then
+local okP, ping = pcall(function()
+return LocalPlayer:GetNetworkPing()
+end)
+if okP and type(ping) == "number" then
+hudLinePing.Text = "Пинг " .. tostring(math.floor(ping * 1000 + 0.5)) .. "мс"
+else
+hudLinePing.Text = "Пинг —"
+end
+end
+if hudLineTPS then
+hudLineTPS.Text = tpsEMA and ("ТПС " .. string.format("%.1f", tpsEMA)) or "ТПС —"
+end
+if hudLinePlayers then
+local n = #Players:GetPlayers()
+local maxP = 0
+pcall(function()
+maxP = Players.MaxPlayers or 0
+end)
+if maxP and maxP > 0 then
+hudLinePlayers.Text = "Игроки " .. tostring(n) .. "/" .. tostring(maxP)
+else
+hudLinePlayers.Text = "Игроки " .. tostring(n)
+end
+end
+-- 0.39: админ/VIP чек — обновление строки
+if hudLineAdmin and S.HUD.ShowAdmin then
+local adminCount = AdminScan_Count or 0
+local adminNames = AdminScan_Names
+if adminCount > 0 then
+hudLineAdmin.Text = "АДМИН: " .. tostring(adminCount) .. " — " .. (adminNames or "?")
+hudLineAdmin.TextColor3 = Color3.fromRGB(255, 80, 80)
+else
+hudLineAdmin.Text = "АДМИН: нет"
+hudLineAdmin.TextColor3 = Color3.fromRGB(120, 200, 120)
+end
+end
+end
+end))
+end
+UIRegistry.HUDEnabled = HudSection:Toggle({
+Name = "Микро-HUD (FPS, пинг, ТПС, игроки)",
+Flag = "HUDEnabled",
+Default = true,
+Callback = function(state)
+S.HUD.Enabled = state
+if state then
+hudEnsure()
+journal("HUD ВКЛ")
+else
+hudDestroy()
+journal("HUD ВЫКЛ")
+end
+end
+})
+UIRegistry.HUDSize = HudSection:Slider({
+Name = "Размер текста HUD",
+Flag = "HUDSize",
+Default = 11,
+Min = 8,
+Max = 16,
+Decimals = 1,
+Callback = function(Value)
+S.HUD.Size = Value
+hudApplyStyle()
+end
+})
+UIRegistry.HUDBgTransparency = HudSection:Slider({
+Name = "Прозрачность фона HUD",
+Flag = "HUDBgTransparency",
+Default = 0.35,
+Min = 0,
+Max = 0.95,
+Decimals = 0.05,
+Callback = function(Value)
+S.HUD.BgTransparency = Value
+hudApplyStyle()
+end
+})
+UIRegistry.HUDTextTransparency = HudSection:Slider({
+Name = "Прозрачность текста HUD",
+Flag = "HUDTextTransparency",
+Default = 0,
+Min = 0,
+Max = 0.9,
+Decimals = 0.05,
+Callback = function(Value)
+S.HUD.TextTransparency = Value
+hudApplyStyle()
+end
+})
+-- 0.39: HUDCorner dropdown убран — теперь drag + colorpickers
+UIRegistry.HUDBgColor = HudSection:Label("Цвет фона HUD"):Colorpicker({
+Name = "Цвет фона HUD",
+Flag = "HUDBgColor",
+Default = Color3.fromRGB(12, 12, 16),
+Callback = function(c)
+S.HUD.ColorBg = c
+hudApplyStyle()
+end
+})
+UIRegistry.HUDTextColor = HudSection:Label("Цвет текста HUD"):Colorpicker({
+Name = "Цвет текста HUD",
+Flag = "HUDTextColor",
+Default = Color3.fromRGB(235, 235, 240),
+Callback = function(c)
+S.HUD.ColorText = c
+hudApplyStyle()
+end
+})
+UIRegistry.HUDStrokeColor = HudSection:Label("Цвет обводки HUD"):Colorpicker({
+Name = "Цвет обводки HUD",
+Flag = "HUDStrokeColor",
+Default = Color3.fromRGB(255, 170, 40),
+Callback = function(c)
+S.HUD.ColorStroke = c
+hudApplyStyle()
+end
+})
+UIRegistry.HUDShowAdmin = HudSection:Toggle({
+Name = "Показывать админ/VIP чек",
+Flag = "HUDShowAdmin",
+Default = true,
+Callback = function(state)
+S.HUD.ShowAdmin = state
+hudApplyStyle()
+end
+})
+UIRegistry.HUDResetPos = HudSection:Button({
+Name = "Сбросить позицию HUD",
+Callback = function()
+S.HUD.Position = nil
+if hudFrame then
+hudSnap(S.HUD.Corner or "Лево-низ")
+end
+journal("HUD: позиция сброшена")
+end
+})
+UIRegistry.HUDShowTPS = HudSection:Toggle({
+Name = "Показывать ТПС сервера",
+Flag = "HUDShowTPS",
+Default = true,
+Callback = function(state)
+S.HUD.ShowTPS = state
+hudApplyStyle()
+end
+})
+UIRegistry.HUDShowBg = HudSection:Toggle({
+Name = "Фон панельки",
+Flag = "HUDShowBg",
+Default = true,
+Callback = function(state)
+S.HUD.ShowBg = state
+hudApplyStyle()
+end
+})
+if S.HUD.Enabled then
+task.defer(function()
+pcall(hudEnsure)
+end)
+end
+getgenv().FUST_HUDCleanup = hudDestroy
+UIRegistry.LootEnabled = LootSection:Toggle({
+Name = "ESP мешков с добычей (рюкзаки игроков)",
+Flag = "LootEnabled",
+Default = false,
+Callback = function(state)
+S.Loot.Enabled = state
+journal("ESP МЕШКОВ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.LootColor = UIRegistry.LootEnabled:Colorpicker({
+Flag = "LootColor",
+Default = LOOT_COLOR,
+Callback = function(color)
+LOOT_COLOR = color
+end
+})
+UIRegistry.LootOwner = LootSection:Toggle({
+Name = "Чей лут (из подписи игры)",
+Flag = "LootOwner",
+Default = true,
+Callback = function(state)
+S.Loot.Owner = state
+end
+})
+UIRegistry.LootSlots = LootSection:Toggle({
+Name = "Сколько слотов забито",
+Flag = "LootSlots",
+Default = true,
+Callback = function(state)
+S.Loot.Slots = state
+end
+})
+UIRegistry.LootDistance = LootSection:Toggle({
+Name = "Дистанция",
+Flag = "LootDistance",
+Default = true,
+Callback = function(state)
+S.Loot.Distance = state
+end
+})
+UIRegistry.LootBox = LootSection:Toggle({
+Name = "Рамка вокруг рюкзака",
+Flag = "LootBox",
+Default = true,
+Callback = function(state)
+S.Loot.Box = state
+end
+})
+UIRegistry.LootChams = LootSection:Toggle({
+Name = "Чамсы рюкзаков (видно сквозь траву и стены)",
+Flag = "LootChams",
+Default = true,
+Callback = function(state)
+S.Loot.Chams = state
+journal("ЧАМСЫ РЮКЗАКОВ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.LootMaxDistance = LootSection:Slider({
+Name = "Рюкзаки: Max Distance",
+Flag = "LootMaxDistance",
+Default = 1500,
+Min = 100,
+Max = 3000,
+Decimals = 50,
+Suffix = "m",
+Callback = function(Value)
+S.Loot.MaxDistance = Value
+end
+})
+UIRegistry.LootDebugLog = LootSection:Toggle({
+Name = "Диагностика: лог рюкзаков в консоль (раз в 10 сек)",
+Flag = "LootDebugLog",
+Default = false,
+Callback = function(state)
+S.Loot.DebugLog = state
+if state then
+print("[FUST] Диагностика рюкзаков: имена, атрибуты, подписи и содержимое пойдут в консоль")
+journal("ДИАГНОСТИКА РЮКЗАКОВ ВКЛ")
+end
+end
+})
+LootCSection = EspPage:Section({ Name = "Лут (бочки и ящики)", Tab = "Лут", Side = 2 })
+UIRegistry.LootCEnabled = LootCSection:Toggle({
+Name = "ESP лута (бочки/ящики/элитные/военные)",
+Flag = "LootCEnabled",
+Default = false,
+Callback = function(state)
+S.LootC.Enabled = state
+journal("ESP ЛУТА " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.LootCColor = UIRegistry.LootCEnabled:Colorpicker({
+Flag = "LootCColor",
+Default = LOOTC_COLOR,
+Callback = function(color)
+LOOTC_COLOR = color
+end
+})
+UIRegistry.LootCName = LootCSection:Toggle({
+Name = "Название контейнера",
+Flag = "LootCName",
+Default = true,
+Callback = function(state)
+S.LootC.Name = state
+end
+})
+UIRegistry.LootCDistance = LootCSection:Toggle({
+Name = "Дистанция",
+Flag = "LootCDistance",
+Default = true,
+Callback = function(state)
+S.LootC.Distance = state
+end
+})
+UIRegistry.LootCBox = LootCSection:Toggle({
+Name = "Рамка вокруг контейнера",
+Flag = "LootCBox",
+Default = true,
+Callback = function(state)
+S.LootC.Box = state
+end
+})
+UIRegistry.LootCMaxDistance = LootCSection:Slider({
+Name = "Лут: Max Distance",
+Flag = "LootCMaxDistance",
+Default = 800,
+Min = 100,
+Max = 3000,
+Decimals = 50,
+Suffix = "m",
+Callback = function(Value)
+S.LootC.MaxDistance = Value
+end
+})
+UIRegistry.LootCChams = LootCSection:Toggle({
+Name = "Чамсы контейнеров (по модельке, пул 12)",
+Flag = "LootCChams",
+Default = false,
+Callback = function(state)
+S.LootC.Chams = state
+journal("ЧАМСЫ КОНТЕЙНЕРОВ (пул) " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+LootCSection:Label("Чамсы — это пул из 12 Highlight'ов: подсвечиваются 12 БЛИЖАЙШИХ моделей. Дальний лут не подсвечивается — это плата за FPS на телефоне.")
+-- 0.39v16: yield убран — в v13 без него работало
+uiStep("Вкладка Боты и НПС", function()
+BotPage = Window:Page({ Name = "Боты и НПС", Icon = ICON_VISUALS })
+BotEspSection = BotPage:Section({ Name = "ESP ботов", Tab = "Боты", Side = 1 })
+BotHitSection = BotPage:Section({ Name = "Хитбоксы НПС", Tab = "Боты", Side = 2 })
+end)
+UIRegistry.NPCEsp = BotEspSection:Toggle({
+Name = "ESP ботов и НПС (мастер)",
+Flag = "NPCEsp",
+Default = false,
+Callback = function(state)
+S.NPC.ESP = state
+journal("ESP БОТОВ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.NPCGuards = BotEspSection:Toggle({
+Name = "Охранники (враждебные НПС)",
+Flag = "NPCGuards",
+Default = true,
+Callback = function(state)
+S.NPC.CatGuards = state
+end
+})
+UIRegistry.NPCColorGuard = UIRegistry.NPCGuards:Colorpicker({
+Flag = "NPCColorGuard",
+Default = NPC_CAT_COLORS.Guard,
+Callback = function(color)
+NPC_CAT_COLORS.Guard = color
+end
+})
+UIRegistry.NPCPeaceful = BotEspSection:Toggle({
+Name = "Мирные НПС (зелёные)",
+Flag = "NPCPeaceful",
+Default = false,
+Callback = function(state)
+S.NPC.CatPeaceful = state
+end
+})
+UIRegistry.NPCColorPeaceful = UIRegistry.NPCPeaceful:Colorpicker({
+Flag = "NPCColorPeaceful",
+Default = NPC_CAT_COLORS.Peaceful,
+Callback = function(color)
+NPC_CAT_COLORS.Peaceful = color
+end
+})
+UIRegistry.NPCAnimals = BotEspSection:Toggle({
+Name = "Животные: медведь, волк, олень, кабан",
+Flag = "NPCAnimals",
+Default = false,
+Callback = function(state)
+S.NPC.CatAnimals = state
+end
+})
+UIRegistry.NPCColorAnimal = UIRegistry.NPCAnimals:Colorpicker({
+Flag = "NPCColorAnimal",
+Default = NPC_CAT_COLORS.Animal,
+Callback = function(color)
+NPC_CAT_COLORS.Animal = color
+end
+})
+UIRegistry.NPCSleepers = BotEspSection:Toggle({
+Name = "Слиперы (спящие игроки)",
+Flag = "NPCSleepers",
+Default = false,
+Callback = function(state)
+S.NPC.CatSleepers = state
+end
+})
+UIRegistry.NPCColorSleeper = UIRegistry.NPCSleepers:Colorpicker({
+Flag = "NPCColorSleeper",
+Default = NPC_CAT_COLORS.Sleeper,
+Callback = function(color)
+NPC_CAT_COLORS.Sleeper = color
+end
+})
+UIRegistry.NPCBox = BotEspSection:Toggle({
+Name = "Боты: бокс",
+Flag = "NPCBox",
+Default = false,
+Callback = function(state)
+S.NPC.Box = state
+end
+})
+UIRegistry.NPCName = BotEspSection:Toggle({
+Name = "Боты: ник модели",
+Flag = "NPCName",
+Default = false,
+Callback = function(state)
+S.NPC.Name = state
+end
+})
+UIRegistry.NPCItem = BotEspSection:Toggle({
+Name = "Боты: предмет в руках",
+Flag = "NPCItem",
+Default = false,
+Callback = function(state)
+S.NPC.Item = state
+end
+})
+UIRegistry.NPCDistance = BotEspSection:Toggle({
+Name = "Боты: дистанция",
+Flag = "NPCDistance",
+Default = false,
+Callback = function(state)
+S.NPC.Distance = state
+end
+})
+UIRegistry.NPCHealthBar = BotEspSection:Toggle({
+Name = "Боты: хелсбар",
+Flag = "NPCHealthBar",
+Default = false,
+Callback = function(state)
+S.NPC.HealthBar = state
+end
+})
+UIRegistry.NPCMaxDistance = BotEspSection:Slider({
+Name = "Боты: Max Distance",
+Flag = "NPCMaxDistance",
+Default = 3000,
+Min = 100,
+Max = 3000,
+Decimals = 50,
+Suffix = "m",
+Callback = function(Value)
+S.NPC.MaxDistance = Value
+end
+})
+UIRegistry.NPCChams = BotEspSection:Toggle({
+Name = "Чамсы ботов (цвет категории, до потолка)",
+Flag = "NPCChams",
+Default = false,
+Callback = function(state)
+S.NPC.Chams = state
+journal("ЧАМСЫ БОТОВ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.NPCChamsTransparency = BotEspSection:Slider({
+Name = "Чамсы ботов: прозрачность",
+Flag = "NPCChamsTransparency",
+Default = 0.5,
+Min = 0,
+Max = 1,
+Decimals = 0.05,
+Suffix = "",
+Callback = function(Value)
+S.NPC.ChamsTransparency = Value
+end
+})
+UIRegistry.NPCDebugLog = BotEspSection:Toggle({
+Name = "Диагностика: лог НПС в консоль (раз в 10 сек)",
+Flag = "NPCDebugLog",
+Default = false,
+Callback = function(state)
+S.NPC.DebugLog = state
+if state then
+print("[FUST] Диагностика НПС: имена, папки, теги и категории пойдут в консоль")
+journal("ДИАГНОСТИКА НПС ВКЛ")
+end
+end
+})
+UIRegistry.NPCHitboxEnabled = BotHitSection:Toggle({
+Name = "Хитбоксы НПС и ботов",
+Flag = "NPCHitboxEnabled",
+Default = false,
+Callback = function(state)
+S.NPC.HitboxEnabled = state
+if state then
+NpcHitboxAnnouncePending = true
+end
+print("[FUST] Хитбоксы НПС " .. (state and ("ВКЛ, размер " .. tostring(S.NPC.HitboxSize)) or "ВЫКЛ"))
+journal("ХИТБОКС НПС " .. (state and ("ВКЛ (размер " .. tostring(S.NPC.HitboxSize) .. ")") or "ВЫКЛ"))
+end
+})
+UIRegistry.NPCHitboxSize = BotHitSection:Slider({
+Name = "Размер хитбокса НПС",
+Flag = "NPCHitboxSize",
+Default = 5,
+Min = 2,
+Max = 6,
+Decimals = 0.5,
+Suffix = "",
+Callback = function(Value)
+S.NPC.HitboxSize = Value
+end
+})
+UIRegistry.NPCHitboxTransparency = BotHitSection:Slider({
+Name = "Прозрачность хитбокса НПС",
+Flag = "NPCHitboxTransparency",
+Default = 0.7,
+Min = 0,
+Max = 0.95,
+Decimals = 0.05,
+Suffix = "",
+Callback = function(Value)
+S.NPC.HitboxTransparency = Value
+end
+})
+UIRegistry.NPCHitboxAnimals = BotHitSection:Toggle({
+Name = "Хитбокс: животные (по умолчанию выкл)",
+Flag = "NPCHitboxAnimals",
+Default = false,
+Callback = function(state)
+S.NPC.HitboxAnimals = state
+journal("ХИТБОКС ЖИВОТНЫЕ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.NPCHitboxSleepers = BotHitSection:Toggle({
+Name = "Хитбокс: слиперы (по умолчанию выкл)",
+Flag = "NPCHitboxSleepers",
+Default = false,
+Callback = function(state)
+S.NPC.HitboxSleepers = state
+journal("ХИТБОКС СЛИПЕРЫ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.HitboxEnabled = HitboxSection:Toggle({
+Name = "Hitbox Expander",
+Flag = "HitboxEnabled",
+Default = false,
+Callback = function(state)
+S.Hitbox.Enabled = state
+if state then
+HitboxAnnouncePending = true
+end
+print("[FUST] Хитбокс " .. (state and ("ВКЛ, размер " .. tostring(S.Hitbox.Size)) or "ВЫКЛ"))
+journal("ХИТБОКС " .. (state and ("ВКЛ (размер " .. tostring(S.Hitbox.Size) .. ")") or "ВЫКЛ"))
+end
+})
+UIRegistry.HitboxSize = HitboxSection:Slider({
+Name = "Hitbox Size",
+Flag = "HitboxSize",
+Default = 5,
+Min = 2,
+Max = 6,
+Decimals = 0.5,
+Suffix = "",
+Callback = function(Value)
+S.Hitbox.Size = Value
+end
+})
+UIRegistry.HitboxTransparency = HitboxSection:Slider({
+Name = "Hitbox Transparency",
+Flag = "HitboxTransparency",
+Default = 0.7,
+Min = 0,
+Max = 0.95,
+Decimals = 0.05,
+Suffix = "",
+Callback = function(Value)
+S.Hitbox.Transparency = Value
+end
+})
+FullBrightBackup = nil
+UIRegistry.ESPTeamCheck = VisFilterSection:Toggle({
+Name = "Team Check (не показывать тимейтов)",
+Flag = "ESPTeamCheck",
+Default = false,
+Callback = function(state)
+S.ESP.TeamCheck = state
+journal("TEAM CHECK (ESP) " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.FullBright = WorldSection:Toggle({
+Name = "FullBright",
+Flag = "FullBright",
+Default = false,
+Callback = function(state)
+S.FullBright = state
+journal("FULLBRIGHT " .. (state and "ВКЛ" or "ВЫКЛ"))
+if state then
+FullBrightBackup = {
+Brightness = Lighting.Brightness,
+ClockTime = Lighting.ClockTime,
+FogEnd = Lighting.FogEnd,
+GlobalShadows = Lighting.GlobalShadows,
+}
+elseif FullBrightBackup then
+Lighting.Brightness = FullBrightBackup.Brightness
+Lighting.ClockTime = FullBrightBackup.ClockTime
+Lighting.FogEnd = FullBrightBackup.FogEnd
+Lighting.GlobalShadows = FullBrightBackup.GlobalShadows
+FullBrightBackup = nil
+end
+end
+})
+UIRegistry.NoDecoration = WorldSection:Toggle({
+Name = "Убрать декорации (NoDecoration)",
+Flag = "NoDecoration",
+Default = false,
+Callback = function(state)
+S.NoDecoration = state
+journal("НОДЕКОРАЦИИ " .. (state and "ВКЛ" or "ВЫКЛ"))
+pcall(function()
+local decor = Workspace:FindFirstChild("Decorations") or Workspace:FindFirstChild("TerrainDecorations")
+if decor then
+if state then
+decor.Parent = nil
+getgenv().FUST_DecorBackup = decor
+else
+decor.Parent = Workspace
+getgenv().FUST_DecorBackup = nil
+end
+end
+end)
+end
+})
+UIRegistry.NoGrass = WorldSection:Toggle({
+Name = "Убрать траву (No Grass)",
+Flag = "NoGrass",
+Default = false,
+Callback = function(state)
+S.NoGrass = state
+journal("НОТРАВА " .. (state and "ВКЛ" or "ВЫКЛ"))
+coroutine.wrap(pcall)(function()
+local terrain = Workspace:FindFirstChildOfClass("Terrain")
+if not terrain then
+repeat
+task.wait()
+until Workspace:FindFirstChildOfClass("Terrain")
+terrain = Workspace:FindFirstChildOfClass("Terrain")
+end
+if sethiddenproperty then
+sethiddenproperty(terrain, "Decoration", not state)
+else
+warn("Your exploit does not support sethiddenproperty.")
+end
+end)
+end
+})
+NoFogBackup = nil
+UIRegistry.NoFog = WorldSection:Toggle({
+Name = "Убрать туман (No Fog)",
+Flag = "NoFog",
+Default = false,
+Callback = function(state)
+S.NoFog = state
+journal("НОФОГ " .. (state and "ВКЛ" or "ВЫКЛ"))
+pcall(function()
+if state then
+if not NoFogBackup then
+NoFogBackup = { FogEnd = Lighting.FogEnd, FogStart = Lighting.FogStart }
+end
+Lighting.FogEnd = 100000
+Lighting.FogStart = 100000
+elseif NoFogBackup then
+Lighting.FogEnd = NoFogBackup.FogEnd
+Lighting.FogStart = NoFogBackup.FogStart
+NoFogBackup = nil
+end
+end)
+end
+})
+-- 0.39: УХУДШЕНИЕ ТЕКСТУР ДЛЯ FPS
+TextureBackup = nil
+function applyTextureDegradation(state)
+pcall(function()
+if state then
+if not TextureBackup then
+TextureBackup = {
+MaterialService2022 = nil,
+LightingTech = Lighting.Technology,
+}
+pcall(function()
+local ms = game:GetService("MaterialService")
+TextureBackup.MaterialService2022 = ms.Use2022Materials
+ms.Use2022Materials = false
+end)
+end
+-- всем BasePart в Workspace — Material = Plastic (если ещё не)
+pcall(function()
+for _, d in ipairs(Workspace:GetDescendants()) do
+if d:IsA("BasePart") and d.Material ~= Enum.Material.Plastic then
+pcall(function()
+d.Material = Enum.Material.Plastic
+end)
+elseif d:IsA("MeshPart") then
+pcall(function()
+d.TextureID = ""
+end)
+elseif d:IsA("Decal") or d:IsA("Texture") then
+pcall(function()
+d.Texture = ""
+d.Transparency = 1
+end)
+end
+end
+end)
+pcall(function()
+Lighting.Technology = Enum.Technology.Compatibility
+end)
+journal("ТЕКСТУРЫ ВЫКЛ (FPS режим)")
+else
+if TextureBackup then
+pcall(function()
+if TextureBackup.MaterialService2022 ~= nil then
+local ms = game:GetService("MaterialService")
+ms.Use2022Materials = TextureBackup.MaterialService2022
+end
+end)
+pcall(function()
+Lighting.Technology = TextureBackup.LightingTech
+end)
+TextureBackup = nil
+end
+journal("ТЕКСТУРЫ ВКЛ (восстановлено)")
+end
+end)
+end
+UIRegistry.TextureDegradation = WorldSection:Toggle({
+Name = "Ухудшение текстур (макс FPS)",
+Flag = "TextureDegradation",
+Default = false,
+Callback = function(state)
+S.TextureDegradation = state
+applyTextureDegradation(state)
+end
+})
+-- 0.39: дальность видимости (StreamingTargetRadius)
+UIRegistry.StreamBoost = WorldSection:Toggle({
+Name = "Увеличить дальность прогрузки",
+Flag = "StreamBoost",
+Default = false,
+Callback = function(state)
+S.StreamBoost = state
+pcall(function()
+if state then
+pcall(function()
+Workspace.StreamingTargetRadius = 4096
+Workspace.StreamingMinRadius = 1024
+end)
+journal("ПРОГРУЗКА: дальность увеличена")
+else
+pcall(function()
+Workspace.StreamingTargetRadius = 1024
+Workspace.StreamingMinRadius = 256
+end)
+journal("ПРОГРУЗКА: дальность по умолчанию")
+end
+end)
+end
+})
+-- 0.39v2: ULTRA ОПТИМИЗАЦИЯ — максимальный FPS ценой визуала
+UltraOpt = false
+function applyUltraOpt(state)
+UltraOpt = state
+pcall(function()
+if state then
+-- 1. Текстуры выкл
+applyTextureDegradation(true)
+UIRegistry.TextureDegradation:Set(true) if UIRegistry.TextureDegradation and UIRegistry.TextureDegradation.Set then pcall(function() UIRegistry.TextureDegradation:Set(true) end) end
+-- 2. FullBright (больше света — меньше теней)
+if not S.FullBright then
+UIRegistry.FullBright:Set(true) if UIRegistry.FullBright and UIRegistry.FullBright.Set then pcall(function() UIRegistry.FullBright:Set(true) end) end
+end
+-- 3. NoFog
+if not S.NoFog then
+if UIRegistry.NoFog and UIRegistry.NoFog.Set then pcall(function() UIRegistry.NoFog:Set(true) end) end
+end
+-- 4. NoGrass
+if not S.NoGrass then
+if UIRegistry.NoGrass and UIRegistry.NoGrass.Set then pcall(function() UIRegistry.NoGrass:Set(true) end) end
+end
+-- 5. NoDecoration
+if not S.NoDecoration then
+if UIRegistry.NoDecoration and UIRegistry.NoDecoration.Set then pcall(function() UIRegistry.NoDecoration:Set(true) end) end
+end
+-- 6. Уменьшить дальность ESP (меньше raycast)
+if S.ESP.MaxDistance > 800 then
+S.ESP.MaxDistance = 800
+if UIRegistry.ESPMaxDistance and UIRegistry.ESPMaxDistance.Set then pcall(function() UIRegistry.ESPMaxDistance:Set(800) end) end
+end
+-- 7. Уменьшить дальность лута
+if S.Loot.MaxDistance > 400 then
+S.Loot.MaxDistance = 400
+if UIRegistry.LootMaxDistance and UIRegistry.LootMaxDistance.Set then pcall(function() UIRegistry.LootMaxDistance:Set(400) end) end
+end
+-- 8. Уменьшить дальность НПС
+if S.NPC.MaxDistance > 1500 then
+S.NPC.MaxDistance = 1500
+if UIRegistry.NPCMaxDistance and UIRegistry.NPCMaxDistance.Set then pcall(function() UIRegistry.NPCMaxDistance:Set(1500) end) end
+end
+-- 9. Отключить трассеры (большой overhead)
+if S.Bullets.Enabled then
+if UIRegistry.BulletsEnabled and UIRegistry.BulletsEnabled.Set then pcall(function() UIRegistry.BulletsEnabled:Set(false) end) end
+end
+-- 10. Отключить чамсы лута (Highlight pool)
+if S.Loot.Chams then
+if UIRegistry.LootChams and UIRegistry.LootChams.Set then pcall(function() UIRegistry.LootChams:Set(false) end) end
+end
+if S.LootC.Chams then
+if UIRegistry.LootCChams and UIRegistry.LootCChams.Set then pcall(function() UIRegistry.LootCChams:Set(false) end) end
+end
+-- 11. Увеличить интервалы сканеров
+LOOT_POOL_INTERVAL = 2.5
+-- 12. GraphicsQuality минимум
+pcall(function()
+settings().Studio.GraphicsQuality = 1
+end)
+pcall(function()
+LocalPlayer.DeviceCameraMode = nil
+end)
+journal("ULTRA ОПТИМИЗАЦИЯ ВКЛ — максимальный FPS, визуал урезан")
+else
+-- Возврат к норме
+LOOT_POOL_INTERVAL = 1.2
+applyTextureDegradation(false)
+if UIRegistry.TextureDegradation and UIRegistry.TextureDegradation.Set then pcall(function() UIRegistry.TextureDegradation:Set(false) end) end
+journal("ULTRA ОПТИМИЗАЦИЯ ВЫКЛ — визуал восстановлен")
+end
+end)
+end
+UIRegistry.UltraOpt = WorldSection:Toggle({
+Name = "ULTRA ОПТИМИЗАЦИЯ (макс FPS)",
+Flag = "UltraOpt",
+Default = false,
+Callback = function(state)
+S.UltraOpt = state
+applyUltraOpt(state)
+end
+})
+-- 0.39v6: X-RAY — прозрачность стен/пола/потолка
+XRayState = { Enabled = false, Transparency = 0.8, Originals = {} }
+function applyXRay(state)
+pcall(function()
+if state then
+-- делаем все BasePart в Workspace прозрачными (кроме Terrain, Characters, Tools)
+XRayState.Originals = {}
+local count = 0
+for _, d in ipairs(Workspace:GetDescendants()) do
+if d:IsA("BasePart") and not d:IsA("Terrain") then
+-- пропускаем персонажей и их части
+local isChar = false
+local p = d
+for _ = 1, 5 do
+if not p then break end
+if p:IsA("Model") and Players:GetPlayerFromCharacter(p) then
+isChar = true break
+end
+p = p.Parent
+end
+if not isChar and not d:IsDescendantOf(LocalPlayer.Character or Instance.new("Folder")) then
+XRayState.Originals[d] = d.Transparency
+d.Transparency = XRayState.Transparency
+count = count + 1
+if count > 2000 then break end -- лимит для FPS
+end
+end
+end
+journal("X-RAY ВКЛ — прозрачно " .. count .. " объектов")
+else
+-- восстанавливаем
+for part, orig in pairs(XRayState.Originals) do
+pcall(function() part.Transparency = orig end)
+end
+XRayState.Originals = {}
+journal("X-RAY ВЫКЛ")
+end
+end)
+end
+UIRegistry.XRay = WorldSection:Toggle({
+Name = "X-Ray (прозрачность стен/пола)",
+Flag = "XRay",
+Default = false,
+Callback = function(state)
+XRayState.Enabled = state
+applyXRay(state)
+end
+})
+UIRegistry.XRayTransparency = WorldSection:Slider({
+Name = "X-Ray: прозрачность",
+Flag = "XRayTransparency",
+Default = 0.8,
+Min = 0.3,
+Max = 1,
+Decimals = 0.05,
+Callback = function(v)
+XRayState.Transparency = v
+if XRayState.Enabled then
+-- обновить на лету
+applyXRay(false)
+applyXRay(true)
+end
+end
+})
+
+-- 0.39v6: ЧАМСЫ НА МЕБЕЛЬ (шкафы, ящики, локеры, гардеробы)
+FurnitureChams = { Enabled = false, Color = Color3.fromRGB(100, 200, 255), Transparency = 0.4 }
+FURNITURE_PATTERNS = {
+"шкаф", "кухонный шкаф", "навесной шкаф", "напольный шкаф", "стеллаж",
+"ящик", "большой ящик", "маленький ящик", "сундук", "контейнер",
+"локер", "локеры", "locker", "lockers",
+"металлический шкаф", "metal cabinet", "металл шкаф",
+"шкаф для базы", "base cabinet", "базовый шкаф",
+"гардероб", "wardrobe", "closet",
+"полка", "shelf", "стеллаж",
+"комод", "chest", "тумба",
+"стол", "table", "стул", "chair",
+"кровать", "bed", "диван", "couch",
+"дверь", "door", "ворота", "gate",
+}
+FURNITURE_TAGS = { "FustFurniture", "FustContainer", "FustStorage", "Furniture", "Container" }
+furnitureChamsPool = {}
+furnitureChamsAt = 0
+function furnitureScan()
+local now = os.clock()
+if now - furnitureChamsAt < 1.5 then return end -- 0.39v8: реже (1.5с) — меньше нагрузки
+furnitureChamsAt = now
+local found = {}
+pcall(function()
+-- 1. по тегам CollectionService (везде в Workspace)
+for _, tag in ipairs(FURNITURE_TAGS) do
+local ok, items = pcall(CollectionService.GetTagged, CollectionService, tag)
+if ok and items then
+for _, inst in ipairs(items) do
+if inst.Parent and (inst:IsA("Model") or inst:IsA("BasePart")) then
+table.insert(found, inst)
+end
+end
+end
+end
+-- 2. по имени через GetDescendants (глубокий поиск, с лимитом)
+local scanned = 0
+for _, d in ipairs(Workspace:GetDescendants()) do
+scanned = scanned + 1
+if scanned > 5000 then break end -- лимит для FPS
+if d:IsA("Model") or d:IsA("BasePart") then
+local okN, name = pcall(function() return string.lower(tostring(d.Name)) end)
+if okN and name and #name > 0 then
+for _, pat in ipairs(FURNITURE_PATTERNS) do
+if string.find(name, pat, 1, true) then
+table.insert(found, d)
+break
+end
+end
+end
+end
+end
+end)
+-- дедуп
+local seen = {}
+local unique = {}
+for _, f in ipairs(found) do
+if not seen[f] then seen[f] = true table.insert(unique, f) end
+end
+-- обновляем пул Highlight
+local POOL_MAX = 20
+for i = 1, math.min(#unique, POOL_MAX) do
+local inst = unique[i]
+local h = furnitureChamsPool[i]
+if not h then
+local okH, created = pcall(function()
+local nh = Instance.new("Highlight")
+nh.Name = "PETUH_FurnitureChams"
+nh.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+nh.FillTransparency = FurnitureChams.Transparency
+nh.OutlineTransparency = 0
+nh.Parent = Workspace
+return nh
+end)
+if okH and created then
+h = created
+furnitureChamsPool[i] = created
+end
+end
+if h then
+pcall(function()
+h.Adornee = inst
+h.FillColor = FurnitureChams.Color
+h.OutlineColor = FurnitureChams.Color
+h.Enabled = true
+end)
+end
+end
+-- скрыть неиспользуемые
+for i = math.min(#unique, POOL_MAX) + 1, #furnitureChamsPool do
+pcall(function()
+furnitureChamsPool[i].Enabled = false
+furnitureChamsPool[i].Adornee = nil
+end)
+end
+if #unique == 0 then
+for i = 1, #furnitureChamsPool do
+pcall(function() furnitureChamsPool[i].Enabled = false end)
+end
+end
+end
+function furnitureChamsCleanup()
+for i = 1, #furnitureChamsPool do
+pcall(function() furnitureChamsPool[i]:Destroy() end)
+furnitureChamsPool[i] = nil
+end
+end
+UIRegistry.FurnitureChams = WorldSection:Toggle({
+Name = "Чамсы мебели (шкафы/ящики/локеры)",
+Flag = "FurnitureChams",
+Default = false,
+Callback = function(state)
+FurnitureChams.Enabled = state
+if not state then
+for i = 1, #furnitureChamsPool do
+pcall(function() furnitureChamsPool[i].Enabled = false end)
+end
+end
+journal("ЧАМСЫ МЕБЕЛИ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+UIRegistry.FurnitureChamsColor = WorldSection:Label("Цвет чамсов мебели"):Colorpicker({
+Name = "Цвет чамсов мебели",
+Flag = "FurnitureChamsColor",
+Default = Color3.fromRGB(100, 200, 255),
+Callback = function(c) FurnitureChams.Color = c end
+})
+UIRegistry.FurnitureChamsTransparency = WorldSection:Slider({
+Name = "Прозрачность чамсов мебели",
+Flag = "FurnitureChamsTransparency",
+Default = 0.4,
+Min = 0,
+Max = 0.9,
+Decimals = 0.05,
+Callback = function(v) FurnitureChams.Transparency = v end
+})
+-- фоновый сканер мебели
+task.spawn(function()
+while true do
+task.wait(1)
+if getgenv().FUST_SESSION ~= FUST_SESSION then break end
+if FurnitureChams.Enabled then
+pcall(furnitureScan)
+end
+end
+end)
+function normalizeName(raw)
+if type(raw) ~= "string" then
+return ""
+end
+local name = raw:gsub("^%s+", ""):gsub("%s+$", "")
+name = name:gsub("^@", "")
+return name
+end
+function resolveName(raw)
+local name = normalizeName(raw)
+if name == "" then
+return nil
+end
+local lower = string.lower(name)
+for _, plr in ipairs(Players:GetPlayers()) do
+if string.lower(plr.Name) == lower then
+return plr.Name
+end
+end
+for _, plr in ipairs(Players:GetPlayers()) do
+if string.lower(plr.DisplayName) == lower then
+return plr.Name
+end
+end
+return name
+end
+WL_BG = Color3.fromRGB(17, 18, 22)
+WL_ROW = Color3.fromRGB(28, 39, 45)
+WL_ACCENT = Color3.fromRGB(157, 53, 12)
+WL_BRIGHT = Color3.fromRGB(225, 66, 6)
+WL_TEXT = Color3.fromRGB(199, 199, 212)
+WL_GRAY = Color3.fromRGB(117, 117, 131)
+wlHost = MiscSection.Items["Content"].Instance
+wlPanel = Instance.new("Frame")
+wlPanel.Name = "FustWhitelistPanel"
+wlPanel.BackgroundColor3 = WL_BG
+wlPanel.BorderSizePixel = 0
+wlPanel.Size = UDim2.new(1, 0, 0, 0)
+wlPanel.AutomaticSize = Enum.AutomaticSize.Y
+wlPanel.LayoutOrder = 100
+wlPanel.Parent = wlHost
+function wlCorner(parent, radius)
+local c = Instance.new("UICorner")
+c.CornerRadius = UDim.new(0, radius or 6)
+c.Parent = parent
+return c
+end
+do
+wlCorner(wlPanel)
+local stroke = Instance.new("UIStroke")
+stroke.Color = WL_ACCENT
+stroke.Transparency = 0.55
+stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stroke.Parent = wlPanel
+local pad = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 8)
+pad.PaddingBottom = UDim.new(0, 8)
+pad.PaddingLeft = UDim.new(0, 8)
+pad.PaddingRight = UDim.new(0, 8)
+pad.Parent = wlPanel
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 6)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = wlPanel
+end
+function wlLabel(text, order, color, bold)
+local l = Instance.new("TextLabel")
+l.BackgroundTransparency = 1
+l.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+l.TextSize = 13
+l.TextColor3 = color or WL_TEXT
+l.Text = text
+l.TextXAlignment = Enum.TextXAlignment.Left
+l.Size = UDim2.new(1, 0, 0, 16)
+l.LayoutOrder = order
+l.Parent = wlPanel
+return l
+end
+wlLabel("Вайтлист (не бьём по этим)", 1, WL_BRIGHT, true)
+wlLabel("Тап по нику в списке — вкл/выкл.", 2, WL_GRAY)
+wlScroll = Instance.new("ScrollingFrame")
+wlScroll.Name = "FustWhitelistScroll"
+wlScroll.Size = UDim2.new(1, 0, 0, 150)
+wlScroll.BackgroundColor3 = WL_BG
+wlScroll.BorderSizePixel = 0
+wlScroll.ScrollBarThickness = 4
+wlScroll.ScrollBarImageColor3 = WL_ACCENT
+wlScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+wlScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+wlScroll.ScrollingDirection = Enum.ScrollingDirection.Y
+wlScroll.LayoutOrder = 3
+wlScroll.Parent = wlPanel
+do
+wlCorner(wlScroll)
+local pad = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 5)
+pad.PaddingBottom = UDim.new(0, 5)
+pad.PaddingLeft = UDim.new(0, 5)
+pad.PaddingRight = UDim.new(0, 6)
+pad.Parent = wlScroll
+local layout = Instance.new("UIListLayout")
+layout.Padding = UDim.new(0, 4)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = wlScroll
+end
+wlRows = {}
+function clearPlayerRows()
+for _, r in ipairs(wlRows) do
+r:Destroy()
+end
+table.clear(wlRows)
+end
+function applyRowStyle(row, isOn)
+local base = row:GetAttribute("WLText") or ""
+if isOn then
+row.BackgroundColor3 = WL_ACCENT
+row.TextColor3 = Color3.fromRGB(255, 255, 255)
+row.Text = "✓ " .. base
+else
+row.BackgroundColor3 = WL_ROW
+row.TextColor3 = WL_GRAY
+row.Text = base
+end
+end
+function rebuildPlayerList()
+clearPlayerRows()
+local rows = {}
+for _, plr in ipairs(Players:GetPlayers()) do
+if plr ~= LocalPlayer then
+table.insert(rows, plr)
+end
+end
+table.sort(rows, function(a, b)
+return a.Name < b.Name
+end)
+if #rows == 0 then
+local empty = Instance.new("TextLabel")
+empty.BackgroundTransparency = 1
+empty.Font = Enum.Font.Gotham
+empty.TextSize = 12
+empty.TextColor3 = WL_GRAY
+empty.Text = "На сервере пока нет других игроков"
+empty.Size = UDim2.new(1, 0, 0, 26)
+empty.LayoutOrder = 1
+empty.Parent = wlScroll
+table.insert(wlRows, empty)
+return
+end
+for order, plr in ipairs(rows) do
+local row = Instance.new("TextButton")
+row.Name = "WL_" .. plr.Name
+row.AutoButtonColor = false
+row.Font = Enum.Font.Gotham
+row.TextSize = 13
+row.TextXAlignment = Enum.TextXAlignment.Left
+row.BackgroundColor3 = WL_ROW
+row.BorderSizePixel = 0
+row.Size = UDim2.new(1, 0, 0, 30)
+row.LayoutOrder = order
+row:SetAttribute("WLText", plr.DisplayName .. " (@" .. plr.Name .. ")")
+row.Parent = wlScroll
+table.insert(wlRows, row)
+wlCorner(row, 5)
+local pad = Instance.new("UIPadding")
+pad.PaddingLeft = UDim.new(0, 8)
+pad.Parent = row
+applyRowStyle(row, Whitelist[plr.Name] == true)
+row.Activated:Connect(function()
+if Whitelist[plr.Name] then
+Whitelist[plr.Name] = nil
+applyRowStyle(row, false)
+else
+Whitelist[plr.Name] = true
+applyRowStyle(row, true)
+end
+end)
+end
+end
+wlLabel("Или впиши ник вручную:", 4, WL_GRAY)
+wlInput = Instance.new("TextBox")
+wlInput.Name = "FustWhitelistInput"
+wlInput.Font = Enum.Font.Gotham
+wlInput.TextSize = 13
+wlInput.PlaceholderText = "Ник или DisplayName друга..."
+wlInput.PlaceholderColor3 = Color3.fromRGB(77, 77, 86)
+wlInput.Text = ""
+wlInput.TextColor3 = WL_TEXT
+wlInput.TextXAlignment = Enum.TextXAlignment.Left
+wlInput.ClearTextOnFocus = false
+wlInput.BackgroundColor3 = WL_BG
+wlInput.BorderSizePixel = 0
+wlInput.Size = UDim2.new(1, 0, 0, 32)
+wlInput.LayoutOrder = 5
+wlInput.Active = true
+wlInput.Selectable = true
+wlInput.Parent = wlPanel
+do
+wlCorner(wlInput)
+local pad = Instance.new("UIPadding")
+pad.PaddingLeft = UDim.new(0, 8)
+pad.Parent = wlInput
+end
+wlButtonRow = Instance.new("Frame")
+wlButtonRow.Name = "FustWhitelistButtons"
+wlButtonRow.BackgroundTransparency = 1
+wlButtonRow.Size = UDim2.new(1, 0, 0, 32)
+wlButtonRow.LayoutOrder = 6
+wlButtonRow.Parent = wlPanel
+do
+local layout = Instance.new("UIListLayout")
+layout.FillDirection = Enum.FillDirection.Horizontal
+layout.Padding = UDim.new(0, 6)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = wlButtonRow
+end
+function wlMakeButton(text, order, bg, fg)
+local b = Instance.new("TextButton")
+b.Font = Enum.Font.GothamBold
+b.TextSize = 13
+b.Text = text
+b.TextColor3 = fg
+b.BackgroundColor3 = bg
+b.BorderSizePixel = 0
+b.Size = UDim2.new(0.5, -3, 1, 0)
+b.LayoutOrder = order
+b.Parent = wlButtonRow
+wlCorner(b, 5)
+return b
+end
+wlAdd = wlMakeButton("+ Добавить", 1, WL_ACCENT, Color3.fromRGB(255, 255, 255))
+wlRemove = wlMakeButton("- Убрать", 2, WL_ROW, WL_TEXT)
+wlAdd.Activated:Connect(function()
+local name = resolveName(wlInput.Text)
+if name then
+Whitelist[name] = true
+rebuildPlayerList()
+end
+wlInput.Text = ""
+pcall(function()
+wlInput:ReleaseFocus()
+end)
+end)
+wlRemove.Activated:Connect(function()
+local name = resolveName(wlInput.Text)
+if name then
+Whitelist[name] = nil
+rebuildPlayerList()
+end
+wlInput.Text = ""
+pcall(function()
+wlInput:ReleaseFocus()
+end)
+end)
+Players.PlayerAdded:Connect(function()
+task.defer(rebuildPlayerList)
+end)
+Players.PlayerRemoving:Connect(function()
+task.defer(rebuildPlayerList)
+end)
+rebuildPlayerList()
+Aim = {
+Enabled = false,
+ShowFOV = false,
+FOV = 150, 
+Distance = 500, 
+Smooth = 4, 
+Prediction = 0.5, 
+Part = "Head", 
+Priority = "Прицел", 
+WallCheck = true,
+TeamCheck = false,
+Crosshair = false,
+TargetsPlayers = true, 
+TargetsNPC = false, 
+TargetsAnimals = false, 
+TargetsSleepers = false, 
+TargetsHelis = false, -- 0.39v2: вертолёты
+AutoPredict = false, 
+AutoPredictK = 1, 
+}
+Evil = {
+Enabled = false, 
+AutoPred = true, 
+Snipe = false, 
+K = 1, 
+}
+AutoAim = {
+Enabled = false, 
+Radius = 500, 
+}
+-- 0.39v2: АВТО-СТРЕЛЬБА
+AutoFire = {
+Enabled = false,
+Delay = 0,         -- 0.39v3: задержка 0 = стрелять каждый кадр пока цель жива
+OnlyOnTarget = true, -- стрелять только когда есть цель в FOV
+UntilDead = true,  -- 0.39v3: стрелять пока цель не умрёт
+WallCheck = true,  -- 0.39v4: не стрелять если цель за стеной
+PCKey = nil,        -- не используется (всегда автомат)
+}
+AF_LastShot = 0
+AF_LastTargetPart = nil
+AA_EnemyNear = false 
+AA_NearestDist = nil 
+AIM_PARTS = { "Head", "Torso", "Legs", "Random" }
+AIM_PART_NAMES = { Head = "ГОЛОВА", Torso = "ТЕЛО", Legs = "НОГИ", Random = "РАНДОМ" }
+-- 0.39v2: паттерны вертолётов для поиска в Workspace
+HELI_PATTERNS = {
+"вертолет", "вертолёт", "верталёт", "helicopter", "heli", "chopper",
+"боевой вертолет", "combat heli", "attack heli", "military heli",
+"transport heli", "грузовой вертолет", "mi-8", "mi-24", "ka-50", "ka-52",
+"uh-60", "ah-64", "ah-1", "bell", "robinson", "apache", "hind",
+}
+HELI_TAGS = { "FustHeli", "FustVehicle", "FustHelicopter", "Vehicle", "Heli" }
+HELI_FOLDER_NAMES = { "Helicopters", "Vehicles", "Heli", "Helis", "Авиация", "Транспорт" }
+trackedHelis = {} -- кэш найденных вертолётов
+heliScanAt = 0
+function heliScanWorkspace()
+local now = os.clock()
+if now - heliScanAt < 2.0 then return end -- раз в 2с
+heliScanAt = now
+local found = {}
+pcall(function()
+-- 1. По тегам CollectionService
+for _, tag in ipairs(HELI_TAGS) do
+local ok, items = pcall(CollectionService.GetTagged, CollectionService, tag)
+if ok and items then
+for _, inst in ipairs(items) do
+if inst:IsA("Model") and inst.Parent then
+table.insert(found, inst)
+end
+end
+end
+end
+-- 2. Поиск по папкам
+for _, folder in ipairs(HELI_FOLDER_NAMES) do
+local okF, f = pcall(function()
+return Workspace:FindFirstChild(folder, true)
+end)
+if okF and f then
+for _, d in ipairs(f:GetDescendants()) do
+if d:IsA("Model") then
+table.insert(found, d)
+end
+end
+end
+end
+-- 3. Поиск по имени в верхнем уровне Workspace
+for _, d in ipairs(Workspace:GetChildren()) do
+if d:IsA("Model") then
+local okN, name = pcall(function() return string.lower(tostring(d.Name)) end)
+if okN then
+for _, pat in ipairs(HELI_PATTERNS) do
+if string.find(name, pat, 1, true) then
+table.insert(found, d)
+break
+end
+end
+end
+end
+end
+end)
+-- дедуп
+local seen = {}
+local unique = {}
+for _, h in ipairs(found) do
+if not seen[h] then
+seen[h] = true
+table.insert(unique, h)
+end
+end
+trackedHelis = unique
+end
+function heliFindAimPart(heli)
+-- ищем BodyPart / Seat / Main rotor для прицеливания
+local bestPart = nil
+local bestScore = -math.huge
+pcall(function()
+-- приоритет: PilotSeat, DriverSeat, Main, Body, HeliBody
+local priority = { "PilotSeat", "DriverSeat", "Main", "Body", "HeliBody", "Cabin", "Tail", "Rotor", "MainRotor" }
+for _, p in ipairs(heli:GetDescendants()) do
+if p:IsA("BasePart") then
+local name = string.lower(tostring(p.Name))
+local score = 0
+for i, pn in ipairs(priority) do
+if string.find(name, string.lower(pn), 1, true) then
+score = 100 - i
+break
+end
+end
+if score == 0 then score = 10 end -- любой BasePart подходит
+if score > bestScore then
+bestScore = score
+bestPart = p
+end
+end
+end
+end)
+return bestPart
+end
+AimHotkeyObj = nil 
+AimHotkeyBusy = false 
+UIRegistry.AimEnabled = AimSection:Toggle({
+Name = "Аимбот (камера-лок)",
+Flag = "AimEnabled",
+Default = false,
+Callback = function(state)
+Aim.Enabled = state
+if AimHotkeyObj then
+AimHotkeyObj.Toggled = state
+end
+journal("АИМБОТ " .. (state and "ВКЛ" or "ВЫКЛ"))
+end
+})
+hasKeyboard = false
+pcall(function()
+hasKeyboard = (UserInputService.KeyboardEnabled == true)
+end)
+if hasKeyboard then
+AimHotkeyBusy = true
+AimHotkeyObj = UIRegistry.AimEnabled:Keybind({
+Flag = "AimHotkey",
+Default = Enum.KeyCode.RightAlt,
+Mode = "Toggle",
+Callback = function(state)
+if AimHotkeyBusy then return end
+if UIRegistry.AimEnabled and UIRegistry.AimEnabled.Set then
+UIRegistry.AimEnabled:Set(state)
+end
+end
+})
+AimHotkeyBusy = false
+UIRegistry.AimHotkey = AimHotkeyObj
+end
+UIRegistry.AimShowFOV = AimSection:Toggle({
+Name = "FOV круг (зеленеет при захвате)",
+Flag = "AimShowFOV",
+Default = false,
+Callback = function(state)
+Aim.ShowFOV = state
+end
+})
+UIRegistry.AimWallCheck = AimSection:Toggle({
+Name = "Проверка стен",
+Flag = "AimWallCheck",
+Default = true,
+Callback = function(state)
+Aim.WallCheck = state
+end
+})
+UIRegistry.AimTeamCheck = AimSection:Toggle({
+Name = "Не целить тимейтов (одна команда)",
+Flag = "AimTeamCheck",
+Default = false,
+Callback = function(state)
+Aim.TeamCheck = state
+end
+})
+UIRegistry.AimCrosshair = AimSection:Toggle({
+Name = "Прицел по центру (CS2-стиль)",
+Flag = "AimCrosshair",
+Default = false,
+Callback = function(state)
+Aim.Crosshair = state
+end
+})
+-- 0.39: настройки прицела CS2
+UIRegistry.CHLength = AimSection:Slider({
+Name = "Прицел: длина лучей",
+Flag = "CHLength",
+Default = 7,
+Min = 1,
+Max = 20,
+Decimals = 1,
+Callback = function(v) CH.Length = v end
+})
+UIRegistry.CHThickness = AimSection:Slider({
+Name = "Прицел: толщина",
+Flag = "CHThickness",
+Default = 2,
+Min = 1,
+Max = 5,
+Decimals = 0.5,
+Callback = function(v) CH.Thickness = v end
+})
+UIRegistry.CHGap = AimSection:Slider({
+Name = "Прицел: зазор от центра",
+Flag = "CHGap",
+Default = 5,
+Min = 0,
+Max = 15,
+Decimals = 0.5,
+Callback = function(v) CH.Gap = v end
+})
+UIRegistry.CHDot = AimSection:Toggle({
+Name = "Прицел: точка в центре",
+Flag = "CHDot",
+Default = false,
+Callback = function(state) CH.Dot = state end
+})
+UIRegistry.CHOutline = AimSection:Toggle({
+Name = "Прицел: обводка (чёрная)",
+Flag = "CHOutline",
+Default = true,
+Callback = function(state) CH.Outline = state end
+})
+UIRegistry.CHColor = AimSection:Label("Прицел: цвет"):Colorpicker({
+Name = "Прицел: цвет",
+Flag = "CHColor",
+Default = Color3.fromRGB(255, 30, 30),
+Callback = function(c) CH.Color = c end
+})
+-- 0.39v2: расширенные настройки CS2
+UIRegistry.CHTStyle = AimSection:Toggle({
+Name = "Прицел: T-стиль (без верха, как AWP)",
+Flag = "CHTStyle",
+Default = false,
+Callback = function(state) CH.TStyle = state end
+})
+UIRegistry.CHDotSize = AimSection:Slider({
+Name = "Прицел: размер точки",
+Flag = "CHDotSize",
+Default = 1,
+Min = 1,
+Max = 5,
+Decimals = 0.5,
+Callback = function(v) CH.DotSize = v end
+})
+UIRegistry.CHOutlineThickness = AimSection:Slider({
+Name = "Прицел: толщина обводки",
+Flag = "CHOutlineThickness",
+Default = 1,
+Min = 1,
+Max = 3,
+Decimals = 0.5,
+Callback = function(v) CH.OutlineThickness = v end
+})
+UIRegistry.CHAlpha = AimSection:Slider({
+Name = "Прицел: прозрачность (0-1)",
+Flag = "CHAlpha",
+Default = 1,
+Min = 0.1,
+Max = 1,
+Decimals = 0.05,
+Callback = function(v) CH.Alpha = v end
+})
+UIRegistry.CHRecoilFollow = AimSection:Toggle({
+Name = "Прицел: следует за отдачей (CS recoil)",
+Flag = "CHRecoilFollow",
+Default = false,
+Callback = function(state) CH.RecoilFollow = state end
+})
+UIRegistry.AimFOV = AimSection:Slider({
+Name = "FOV радиус",
+Flag = "AimFOV",
+Default = 150,
+Min = 50,
+Max = 400,
+Decimals = 5,
+Suffix = "px",
+Callback = function(Value)
+Aim.FOV = Value
+end
+})
+UIRegistry.AimDistance = AimSection:Slider({
+Name = "Дистанция аима",
+Flag = "AimDistance",
