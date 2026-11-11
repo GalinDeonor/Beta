@@ -1124,6 +1124,14 @@ local function wrapElement(nlObj, nlSec, kind, data)
         function w:Fire()
                 pcall(function() if w.Obj and w.Obj.Fire then w.Obj:Fire() end end)
         end
+        -- H5-FIX: метод :Get() для keybind (сохранение в конфиг)
+        function w:Get()
+                if w.Obj and w.Obj.Get then
+                        local ok, k, m = pcall(function() return w.Obj:Get() end)
+                        if ok then return k, m end
+                end
+                return w.Value, w.Mode or "Toggle"
+        end
 
         -- прикреплённые элементы (как в старой библиотеке: Toggle:Colorpicker() и т.п.)
         function w:Colorpicker(d)
@@ -1237,7 +1245,7 @@ makeKeybind = function(sec, data)
                 text = data.Name or data.Title or "Keybind",
                 default = normKey(data.Default or Enum.KeyCode.Unknown),
                 onkeychanged = function(keyName)
-                        key = normKey(keyName)
+                        local key = normKey(keyName) -- H9-FIX: был global
                         if w then
                                 w.Key = key
                                 pushFlag(w, data.Flag, { Key = tostring(key), Mode = data.Mode or "Toggle" })
@@ -1579,7 +1587,7 @@ end
 
 -- ================= настройки =================
 function Library:CreateSettingsPage(Win)
-        task.delay(1, function()
+        task.delay(0.1, function() -- M4-FIX: было 1с
                 local ok, err = pcall(function()
                         local SettingsPage = Win:Page({ Name = "Settings", Icon = "rbxassetid://80758916183665" })
 
@@ -3547,16 +3555,14 @@ Default = false,
 Callback = function(state)
 S.NoGrass = state
 journal("НОТРАВА " .. (state and "ВКЛ" or "ВЫКЛ"))
-coroutine.wrap(pcall)(function()
+task.spawn(function() -- C3-FIX: был coroutine.wrap(pcall) — глотал ошибки
 local terrain = Workspace:FindFirstChildOfClass("Terrain")
 if not terrain then
-repeat
-task.wait()
-until Workspace:FindFirstChildOfClass("Terrain")
-terrain = Workspace:FindFirstChildOfClass("Terrain")
+terrain = Workspace:WaitForChild("Terrain", 10)
 end
+if not terrain then warn("[FUST] NoGrass: Terrain не найден за 10с") return end
 if sethiddenproperty then
-sethiddenproperty(terrain, "Decoration", not state)
+pcall(function() sethiddenproperty(terrain, "Decoration", not state) end)
 else
 warn("Your exploit does not support sethiddenproperty.")
 end
@@ -3728,10 +3734,8 @@ if UIRegistry.LootCChams and UIRegistry.LootCChams.Set then pcall(function() UIR
 end
 -- 11. Увеличить интервалы сканеров
 LOOT_POOL_INTERVAL = 2.5
--- 12. GraphicsQuality минимум
-pcall(function()
-settings().Studio.GraphicsQuality = 1
-end)
+-- M5-FIX: settings().Studio — Studio-only API, убрано
+pcall(function() if sethiddenproperty then sethiddenproperty(Workspace, "Terrain.WaterWaveSize", 0) end end)
 pcall(function()
 LocalPlayer.DeviceCameraMode = nil
 end)
@@ -3762,6 +3766,7 @@ if state then
 -- делаем все BasePart в Workspace прозрачными (кроме Terrain, Characters, Tools)
 XRayState.Originals = {}
 local count = 0
+local M1Fallback = Instance.new("Folder") -- M1-FIX: один Folder вместо 2000
 for _, d in ipairs(Workspace:GetDescendants()) do
 if d:IsA("BasePart") and not d:IsA("Terrain") then
 -- пропускаем персонажей и их части
@@ -3774,7 +3779,7 @@ isChar = true break
 end
 p = p.Parent
 end
-if not isChar and not d:IsDescendantOf(LocalPlayer.Character or Instance.new("Folder")) then
+if not isChar and not d:IsDescendantOf(LocalPlayer.Character or M1Fallback) then -- M1-FIX
 XRayState.Originals[d] = d.Transparency
 d.Transparency = XRayState.Transparency
 count = count + 1
@@ -4218,12 +4223,8 @@ pcall(function()
 wlInput:ReleaseFocus()
 end)
 end)
-Players.PlayerAdded:Connect(function()
-task.defer(rebuildPlayerList)
-end)
-Players.PlayerRemoving:Connect(function()
-task.defer(rebuildPlayerList)
-end)
+Library:Connect(Players.PlayerAdded, function() task.defer(rebuildPlayerList) end) -- H4a-FIX
+Library:Connect(Players.PlayerRemoving, function() task.defer(rebuildPlayerList) end)
 rebuildPlayerList()
 Aim = {
 Enabled = false,
@@ -4383,7 +4384,7 @@ pcall(function()
 hasKeyboard = (UserInputService.KeyboardEnabled == true)
 end)
 if hasKeyboard then
-AimHotkeyBusy = true
+local AimHotkeyBusy = true -- M6-FIX
 AimHotkeyObj = UIRegistry.AimEnabled:Keybind({
 Flag = "AimHotkey",
 Default = Enum.KeyCode.RightAlt,
@@ -5804,10 +5805,10 @@ end
 local l = string.lower(label)
 local pats = {
 "^%s*(.-)'s%s*backpack%s*$", 
-"^%s*(.-)s%s*backpack%s*$", 
+"^%s*(.-)%ss*backpack%s*$", -- M7-FIX
 "^%s*(.-)%s+backpack%s*$", 
 "^%s*(.-)'s%s*loot%s*bag%s*$",
-"^%s*(.-)s%s*loot%s*bag%s*$",
+"^%s*(.-)%ss*loot%s*bag%s*$", -- M7-FIX
 "^%s*(.-)%s+loot%s*bag%s*$",
 "^рюкзак%s+(.+)%s*$", 
 "^Рюкзак%s+(.+)%s*$", 
@@ -6541,9 +6542,7 @@ cam.CFrame = CFrame.new(pos) * CFrame.fromEulerAnglesYXZ(FC_MOD.pitch, FC_MOD.ya
 -- безопаснее. Если улетаешь далеко и видно пустоту — подними до 1.0.
 if os.clock() - FC_MOD.streamAt > 1.5 then
 FC_MOD.streamAt = os.clock()
-pcall(function()
-LocalPlayer:RequestStreamAroundAsync(pos)
-end)
+task.spawn(function() pcall(function() LocalPlayer:RequestStreamAroundAsync(pos) end) end) -- C2-FIX
 end
 end))
 -- ПОВОРОТ НА ПК: зажать ПКМ и вести мышью. Раньше был GetMouseDelta —
@@ -6662,9 +6661,14 @@ end
 FC_MOD.savedHum.AutoRotate = FC_MOD.savedAutoRotate ~= false
 pcall(function()
 -- 0.39v8 FIX: GettingUp может не вывести из Physics. Пробуем Landed + свободное состояние.
-FC_MOD.savedHum:ChangeState(Enum.HumanoidStateType.GettingUp)
-task.wait(0.05)
+FC_MOD.savedHum:ChangeState(Enum.HumanoidStateType.GettingUp) -- H6-FIX
+end)
+task.delay(0.05, function()
+pcall(function()
+if FC_MOD.savedHum and FC_MOD.savedHum.Parent then
 FC_MOD.savedHum:ChangeState(Enum.HumanoidStateType.Running)
+end
+end)
 end)
 -- 0.39v8 FIX: снимаем якорь с HRP обязательно
 pcall(function()
@@ -6807,12 +6811,16 @@ end
 lootChamPoolWanted = true
 end
 function updateBackpackEsp(camera, myRoot)
+local _rm = {} -- M2-FIX: collect-then-remove
 for inst in pairs(trackedBackpacks) do
 if not inst.Parent or not inst:IsDescendantOf(Workspace) then
+_rm[#_rm+1] = inst
+end
+end
+for _, inst in ipairs(_rm) do
 bpRemoveDrawings(inst)
 bpOpenCacheInst[inst] = nil
 trackedBackpacks[inst] = nil
-end
 end
 if (not S.Loot.Enabled and not S.LootC.Enabled) or not myRoot then
 bpHideAll()
@@ -7392,7 +7400,9 @@ if Evil.Snipe then baseA = math.min(0.98, baseA + 0.06) end
 -- aimPos уже маленький (цель почти в прицеле) — уменьшаем alpha,
 -- чтобы не проскочить. Если угол большой — alpha максимум.
 local currentLook = camera.CFrame.LookVector
-local toAim = (aimPos - camera.CFrame.Position).Unit
+local _toAimVec = aimPos - camera.CFrame.Position
+if _toAimVec.Magnitude < 0.01 then return end -- C4-FIX
+local toAim = _toAimVec.Unit
 local dot = currentLook:Dot(toAim)
 if dot > 0.98 then
 -- уже почти навелись — плавная коррекция
@@ -7481,6 +7491,13 @@ end
 end)
 chLines[i] = nil
 end
+-- H1-FIX: cleanup chDot + chOutline
+pcall(function() if chDot then chDot:Remove() end end)
+chDot = nil
+for _i = 1, 8 do
+pcall(function() if chOutline and chOutline[_i] then chOutline[_i]:Remove() end end)
+end
+chOutline = nil
 end
 function autoAimTick()
 if not AutoAim.Enabled then
@@ -7699,6 +7716,8 @@ HealthBar = S.ESP.HealthBar,
 MaxDistance = S.ESP.MaxDistance,
 DistanceScale = S.ESP.DistanceScale,
 TeamCheck = S.ESP.TeamCheck,
+VisCheck = S.ESP.VisCheck, -- H7-FIX
+VisHitbox = S.ESP.VisHitbox,
 },
 BoxColor = colorToTable(S.ESPColors.Box),
 NPCColors = {
@@ -7865,6 +7884,8 @@ end
 if cfg.ESP.TeamCheck ~= nil then
 applyFlag("ESPTeamCheck", cfg.ESP.TeamCheck)
 end
+if cfg.ESP.VisCheck ~= nil then applyFlag("ESPVisCheck", cfg.ESP.VisCheck) end -- H7-FIX
+if cfg.ESP.VisHitbox ~= nil then applyFlag("ESPVisHitbox", cfg.ESP.VisHitbox) end
 end
 if type(cfg.NPC) == "table" then
 applyFlag("NPCEsp", cfg.NPC.ESP)
@@ -8794,8 +8815,7 @@ Lighting.ClockTime = 14
 Lighting.FogEnd = 100000
 Lighting.GlobalShadows = false
 end
-AR_DriftPass()
-AS_Pass()
+-- C1-FIX: убрано — вызывается в FUST_AR_Restore
 if S.NoFog then
 if Lighting.FogEnd < 100000 then
 Lighting.FogEnd = 100000
@@ -9418,6 +9438,13 @@ end)
 pcall(function()
 bpRemoveAll()
 end)
+-- H2-FIX: furniture chams cleanup
+pcall(function() if type(furnitureChamsCleanup) == "function" then furnitureChamsCleanup() end end)
+-- H3-FIX: восстановить XRay и текстуры
+pcall(function() if XRayState and XRayState.Enabled then applyXRay(false) end end)
+pcall(function() if type(applyTextureDegradation) == "function" then applyTextureDegradation(false) end end)
+-- aim drawings cleanup
+pcall(function() if getgenv().FUST_AimCleanup then getgenv().FUST_AimCleanup() end end)
 end
 getgenv().FUST_Deactivate = function()
 pcall(function()
@@ -9490,10 +9517,7 @@ getgenv().FUST_Deactivate = nil
 getgenv().FUST_DecorBackup = nil
 print("[FUST] Скрипт полностью деактивирован. Заново execute — чтобы включить снова.")
 end
-Players.PlayerRemoving:Connect(function(player)
-removeEspDrawings(player)
-hitboxOriginals[player] = nil
-end)
+Library:Connect(Players.PlayerRemoving, function(player) removeEspDrawings(player) hitboxOriginals[player] = nil end) -- H4b-FIX
 -- 0.39v16: yield убран — в v13 без него работало
 
 -- ============================================================================
@@ -9756,22 +9780,28 @@ end
 
 -- Главный слушатель: PlayerRemoving для LocalPlayer = кик/бан/выход
 local klPlayerRemoved = false
-local function klCheckAndLog(reason, banner)
+local klDelayedLogged = false -- H8-FIX
+local function klCheckAndLog(reason, banner, isImmediate)
+if isImmediate then
 if klPlayerRemoved then return end
 klPlayerRemoved = true
+else
+if klDelayedLogged then return end
+klDelayedLogged = true
+end
 klLogExit(reason, banner)
 end
-Players.PlayerRemoving:Connect(function(player)
-if player == LocalPlayer then
+Library:Connect(Players.PlayerRemoving, function(player)
+if player == LocalPlayer then -- H4c-FIX
 -- Даём CoreGui 0.3с на отрисовку баннера кика
 task.delay(0.3, function()
 local banner = klScanKickBanner()
 local reason = banner and "KICK/BAN (найден баннер в CoreGui)" or "EXIT/QUIT (баннер не найден — возможно ручной выход)"
-klCheckAndLog(reason, banner)
+klCheckAndLog(reason, banner, false) -- H8-FIX
 end)
 -- 0.39v3: логируем СРАЗУ тоже, без delay — вдруг delay не выполнится
 local banner2 = klScanKickBanner()
-klCheckAndLog("PLAYER_REMOVING (без баннера, мгновенный лог)", banner2)
+klCheckAndLog("PLAYER_REMOVING (без баннера, мгновенный лог)", banner2, true) -- H8-FIX
 end
 end)
 -- 0.39v3: перехват Player:Kick убран — на Delta hookfunction на Instance-методах

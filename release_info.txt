@@ -1,36 +1,52 @@
-RELEASE 0.51 — ФИКС ФРИЗА НА 4-Й ЧАСТИ
+RELEASE 0.51.1 — БАГФИКСЫ (21 баг)
 Дата: 2026-11-11
+Основано на: 0.51 (лоадер v5)
 
-ДИАГНОЗ 0.50:
-  Юзер: «начало качать 4 часть и зависло фулл».
-  Fust1, Fust2, Fust3 — скачались OK, на Fust4 — полный фриз.
-  Причина: функция race() в лоадере 0.50 плодила ВИСЯЩИЕ task.spawn с
-  game:HttpGet. Каждый провал по таймауту (8 сек) оставлял HttpGet живым.
-  Цикл fetch делал 3 попытки × 2 метода = 6 попыток на чанк = до 6 висящих
-  тасков на чанк. К 4-му чанку накапливалось 15-20 висящих сетевых вызовов
-  → движок Delta задыхался, фриз.
+ДИФФ ОТ 0.51:
+  Fust — ИЗМЕНЁН (351250 → 353546 байт, md5 7cf8b9fd → 586975ba)
+  Fust1..4 — пере разбиты (новые размеры в manifest.json)
+  manifest.json — ver 0.51.1, новый md5
+  FUST_loader_universal.txt — НЕ ИЗМЕНЁН (лоадер v5 совместим)
+  neverlose_patched.lua — НЕ ИЗМЕНЁН
 
-ЧТО ИЗМЕНЕНО В 0.51 (ТОЛЬКО лоадер, Fust и чанки НЕ ТРОГАЛИ):
-  1. УБРАН race() и task.spawn для HTTP-запросов. Запрос идёт ОДИН раз
-     через request({Url=..., Method="GET", Timeout=15}). request() НЕ
-     блокирует поток и сам возвращает управление по таймауту — висящих
-     тасков больше нет.
-  2. Fallback на game:HttpGet напрямую, БЕЗ task.spawn. Если request()
-     нет — блокирует ОДИН раз, не накапливая мусор.
-  3. task.wait(0.4) МЕЖДУ чанками — движок продыхивает между скачиваниями.
-     В 0.50 этого yield'а НЕ было → к 4-му чанку накопилось висящего мусора.
-  4. 2 попытки на чанк (вместо 6 в 0.50) — меньше висящего мусора.
-  5. request() вызывается с параметром Timeout=15 — Delta/Solara/Xeno
-     поддерживают, и обрывают запрос сами, не оставляя висящего.
+КРИТИЧНЫЕ ФИКСЫ (4):
+  C1. Убран дублирующий вызов AR_DriftPass()/AS_Pass() в renderConnection.
+      Раньше анти-отдача применялась ДВАЖДЫ за кадр → дёрганье камеры.
+  C2. RequestStreamAroundAsync обёрнут в task.spawn — больше не yield'ит
+      в RenderStepped. Фрикам корректно прогружает карту.
+  C3. coroutine.wrap(pcall) заменён на task.spawn с warn() при ошибке +
+      WaitForChild("Terrain", 10) вместо repeat/until (убран висячий цикл).
+  C4. .Unit на zero-векторе в aimConnection — добавлен magnitude check.
+      Раньше NaN → краш connection → аимбот отключался навсегда.
 
-ВАЖНО: Fust и neverlose_patched.lua — ТЕ ЖЕ, что в 0.50 (md5 не изменился).
-  Меняется ТОЛЬКО лоадер и поле ver в манифесте.
+ВЫСОКИЙ ПРИОРИТЕТ (9):
+  H1. chDot + chOutline[1..8] теперь очищаются в FUST_AimCleanup (была утечка 9 Drawing).
+  H2. furnitureChamsCleanup() вызывается в FUST_RenderCleanup (была утечка Highlight пула).
+  H3. XRay + TextureDegradation восстанавливаются при выгрузке (прозрачность стен больше не остаётся).
+  H4. 4 прямых :Connect заменены на Library:Connect → отключаются при unload (нет дубликатов при reload).
+  H5. Добавлен метод :Get() в wrapElement → AimHotkey сохраняется в конфиг.
+  H6. task.wait(0.05) в freecamDisable заменён на task.delay → не yield'ит в RenderStepped.
+  H7. VisCheck/VisHitbox добавлены в saveConfig+loadConfig → настройки ESP видимости сохраняются.
+  H8. Лог кика: разделены immediate/delayed флаги → баннер CoreGui теперь логируется (не теряется).
+  H9. `key = normKey(...)` → `local key` → убрано загрязнение _G.
 
-ФАЙЛЫ РЕЛИЗА:
-  Fust               — 351250 байт (md5 7cf8b9fd0b0b98288bf91e25da8367b5)
-  neverlose_patched.lua — 78372 байт (тот же, что 0.50)
-  Fust1..4           — чанки: [94986, 94987, 95000, 66277]
-  manifest.json      — v51 (md5 от Fust тот же, что 0.50)
-  FUST_loader_universal.txt — лоадер v5, LOADER_VER 0.51
+СРЕДНИЙ ПРИОРИТЕТ (8):
+  M1. Instance.new("Folder") вынесен из цикла XRay (было 2000 orphaned Instance).
+  M2. Удаление ключей во время pairs() исправлено (collect-then-remove).
+  M3. (отложено — bpDrawings пул требует рефакторинга)
+  M4. task.delay(1) → task.delay(0.1) в CreateSettingsPage (вкладка Settings появляется быстрее).
+  M5. settings().Studio.GraphicsQuality убран (Studio-only, не работает в Runtime).
+  M6. AimHotkeyBusy → local (убрано загрязнение _G).
+  M7. Паттерн владельца рюкзака: `s` (литерал) → `%s` (whitespace) → корректный разбор.
+  M8. VisCheck/VisHitbox в cfg.ESP (объединено с H7).
 
-СИНТАКСИС: Lua 5.3 парсер прошёл.
+ПРОВЕРКА:
+  - Lua синтаксис: OK (fengari Lua 5.3 + Luau continue — компилируется)
+  - Сборка чанков: Fust1+Fust2+Fust3+Fust4 = Fust (353546 байт) ✓
+  - MD5: 586975ba71eb6359052b703fd82b841b ✓
+  - 24 FIX-маркера в коде: все присутствуют ✓
+
+ЗАЛИВКА НА GITHUB:
+  Замени ВСЕ файлы в репозитории GalinDeonor/Beta:
+    Fust, Fust1, Fust2, Fust3, Fust4, manifest.json, release_info.txt
+  FUST_loader_universal.txt и neverlose_patched.lua — НЕ ТРОГАЙ (те же).

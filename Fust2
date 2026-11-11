@@ -1,3 +1,126 @@
+о умолчанию; PETUH_MENU_KEY обновляется
+        -- через OnKeyChanged в настройках)
+        pcall(function()
+                local UIS = game:GetService("UserInputService")
+                Library:Connect(UIS.InputBegan, function(input, gp)
+                        if gp then return end
+                        local key = getgenv().PETUH_MENU_KEY or Enum.KeyCode.RightControl
+                        if input.KeyCode == key then
+                                win:SetOpen(not win:IsOpenLive())
+                        end
+                end)
+        end)
+
+        -- мобильная кнопка меню (иконка петуха, тап = открыть/закрыть)
+        pcall(function()
+                local UIS = game:GetService("UserInputService")
+                if UIS.TouchEnabled == true then
+                        local icon = PETUH_ICON_ASSET or "rbxassetid://134242818164054"
+                        local mbtn = Instance.new("ImageButton")
+                        mbtn.Name = "FUST_MobileMenu"
+                        mbtn.Image = icon
+                        mbtn.ScaleType = Enum.ScaleType.Fit
+                        mbtn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+                        mbtn.BackgroundTransparency = 0.25
+                        mbtn.BorderSizePixel = 0
+                        mbtn.Size = UDim2.fromOffset(44, 44)
+                        mbtn.Position = UDim2.new(0, 10, 0.5, -22)
+                        mbtn.Active = true
+                        mbtn.AutoButtonColor = false
+                        mbtn.Parent = Library.Holder.Instance
+                        local mc = Instance.new("UICorner")
+                        mc.CornerRadius = UDim.new(0, 8)
+                        mc.Parent = mbtn
+                        local ms = Instance.new("UIStroke")
+                        ms.Color = ACCENT_RED
+                        ms.Thickness = 1.5
+                        ms.Transparency = 0.3
+                        ms.Parent = mbtn
+                        -- drag пальцем + тап
+                        local mdrag, mstart, mpos, mmoved
+                        mbtn.InputBegan:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.MouseButton1
+                                or input.UserInputType == Enum.UserInputType.Touch then
+                                        mdrag = true
+                                        mmoved = false
+                                        mstart = input.Position
+                                        mpos = mbtn.Position
+                                        input.Changed:Connect(function()
+                                                if input.UserInputState == Enum.UserInputState.End then mdrag = false end
+                                        end)
+                                end
+                        end)
+                        mbtn.InputChanged:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.Touch
+                                or input.UserInputType == Enum.UserInputType.MouseMovement then
+                                        if mdrag then
+                                                local d = input.Position - mstart
+                                                if d.Magnitude > 8 then mmoved = true end
+                                                mbtn.Position = UDim2.new(mpos.X.Scale, mpos.X.Offset + d.X, mpos.Y.Scale, mpos.Y.Offset + d.Y)
+                                        end
+                                end
+                        end)
+                        mbtn.MouseButton1Click:Connect(function()
+                                if not mmoved then
+                                        win:SetOpen(not win:IsOpenLive())
+                                end
+                        end)
+                        -- отдаём в формате, который ждёт основной код:
+                        -- Window.LGWindow.MobileButton.Root
+                        nlWin.MobileButton = { Root = mbtn }
+                end
+        end)
+
+        return win
+end
+
+-- ================= настройки =================
+function Library:CreateSettingsPage(Win)
+        task.delay(0.1, function() -- M4-FIX: было 1с
+                local ok, err = pcall(function()
+                        local SettingsPage = Win:Page({ Name = "Settings", Icon = "rbxassetid://80758916183665" })
+
+                        -- кнопка-петух
+                        local MenuSection = SettingsPage:Section({ Name = "Кнопка меню", Tab = "Меню" })
+                        MenuSection:Toggle({
+                                Name = "Скрыть кнопку-петух (только хоткей)",
+                                Flag = "PetuhBtnHidden",
+                                Default = false,
+                                Callback = function(state)
+                                        if petuhSetBtnHidden then petuhSetBtnHidden(state) end
+                                end,
+                        })
+                        MenuSection:Label("Клавиша меню (назначить)"):Keybind({
+                                Name = "Клавиша открытия/закрытия меню",
+                                Flag = "PetuhMenuKey",
+                                Default = Enum.KeyCode.RightControl,
+                                Mode = "Toggle",
+                                Callback = function() end,
+                                OnKeyChanged = function(key)
+                                        pcall(function()
+                                                PETUH_MENU_KEY = key
+                                                Library.LG.ToggleKey = key
+                                                journal("МЕНЮ: клавиша = " .. tostring(key))
+                                        end)
+                                end,
+                        })
+                        pcall(function()
+                                if type(delfile) == "function" then pcall(delfile, "FUST_loadScreen_ON.txt") end
+                        end)
+                        MenuSection:Label("Кнопку можно перетащить в любое место.")
+
+                        -- окно
+                        local WinSection = SettingsPage:Section({ Name = "Окно", Tab = "Оформление" })
+                        WinSection:Button({
+                                Name = "Выгрузить скрипт (Unload)",
+                                Callback = function()
+                                        Library:Unload()
+                                end,
+                        })
+
+                        -- конфиги
+                        local ConfigsSection = SettingsPage:Section({ Name = "Configs", Tab = "Конфиги" })
+                        local ConfigName, ConfigSelected
                         local ConfigsDropdown
                         ConfigsDropdown = ConfigsSection:Dropdown({
                                 Name = "Configs",
@@ -1921,16 +2044,14 @@ Default = false,
 Callback = function(state)
 S.NoGrass = state
 journal("НОТРАВА " .. (state and "ВКЛ" or "ВЫКЛ"))
-coroutine.wrap(pcall)(function()
+task.spawn(function() -- C3-FIX: был coroutine.wrap(pcall) — глотал ошибки
 local terrain = Workspace:FindFirstChildOfClass("Terrain")
 if not terrain then
-repeat
-task.wait()
-until Workspace:FindFirstChildOfClass("Terrain")
-terrain = Workspace:FindFirstChildOfClass("Terrain")
+terrain = Workspace:WaitForChild("Terrain", 10)
 end
+if not terrain then warn("[FUST] NoGrass: Terrain не найден за 10с") return end
 if sethiddenproperty then
-sethiddenproperty(terrain, "Decoration", not state)
+pcall(function() sethiddenproperty(terrain, "Decoration", not state) end)
 else
 warn("Your exploit does not support sethiddenproperty.")
 end
@@ -2102,10 +2223,8 @@ if UIRegistry.LootCChams and UIRegistry.LootCChams.Set then pcall(function() UIR
 end
 -- 11. Увеличить интервалы сканеров
 LOOT_POOL_INTERVAL = 2.5
--- 12. GraphicsQuality минимум
-pcall(function()
-settings().Studio.GraphicsQuality = 1
-end)
+-- M5-FIX: settings().Studio — Studio-only API, убрано
+pcall(function() if sethiddenproperty then sethiddenproperty(Workspace, "Terrain.WaterWaveSize", 0) end end)
 pcall(function()
 LocalPlayer.DeviceCameraMode = nil
 end)
@@ -2136,6 +2255,7 @@ if state then
 -- делаем все BasePart в Workspace прозрачными (кроме Terrain, Characters, Tools)
 XRayState.Originals = {}
 local count = 0
+local M1Fallback = Instance.new("Folder") -- M1-FIX: один Folder вместо 2000
 for _, d in ipairs(Workspace:GetDescendants()) do
 if d:IsA("BasePart") and not d:IsA("Terrain") then
 -- пропускаем персонажей и их части
@@ -2148,7 +2268,7 @@ isChar = true break
 end
 p = p.Parent
 end
-if not isChar and not d:IsDescendantOf(LocalPlayer.Character or Instance.new("Folder")) then
+if not isChar and not d:IsDescendantOf(LocalPlayer.Character or M1Fallback) then -- M1-FIX
 XRayState.Originals[d] = d.Transparency
 d.Transparency = XRayState.Transparency
 count = count + 1
@@ -2394,514 +2514,4 @@ stroke.Transparency = 0.55
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = wlPanel
 local pad = Instance.new("UIPadding")
-pad.PaddingTop = UDim.new(0, 8)
-pad.PaddingBottom = UDim.new(0, 8)
-pad.PaddingLeft = UDim.new(0, 8)
-pad.PaddingRight = UDim.new(0, 8)
-pad.Parent = wlPanel
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 6)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = wlPanel
-end
-function wlLabel(text, order, color, bold)
-local l = Instance.new("TextLabel")
-l.BackgroundTransparency = 1
-l.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
-l.TextSize = 13
-l.TextColor3 = color or WL_TEXT
-l.Text = text
-l.TextXAlignment = Enum.TextXAlignment.Left
-l.Size = UDim2.new(1, 0, 0, 16)
-l.LayoutOrder = order
-l.Parent = wlPanel
-return l
-end
-wlLabel("Вайтлист (не бьём по этим)", 1, WL_BRIGHT, true)
-wlLabel("Тап по нику в списке — вкл/выкл.", 2, WL_GRAY)
-wlScroll = Instance.new("ScrollingFrame")
-wlScroll.Name = "FustWhitelistScroll"
-wlScroll.Size = UDim2.new(1, 0, 0, 150)
-wlScroll.BackgroundColor3 = WL_BG
-wlScroll.BorderSizePixel = 0
-wlScroll.ScrollBarThickness = 4
-wlScroll.ScrollBarImageColor3 = WL_ACCENT
-wlScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-wlScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-wlScroll.ScrollingDirection = Enum.ScrollingDirection.Y
-wlScroll.LayoutOrder = 3
-wlScroll.Parent = wlPanel
-do
-wlCorner(wlScroll)
-local pad = Instance.new("UIPadding")
-pad.PaddingTop = UDim.new(0, 5)
-pad.PaddingBottom = UDim.new(0, 5)
-pad.PaddingLeft = UDim.new(0, 5)
-pad.PaddingRight = UDim.new(0, 6)
-pad.Parent = wlScroll
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 4)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = wlScroll
-end
-wlRows = {}
-function clearPlayerRows()
-for _, r in ipairs(wlRows) do
-r:Destroy()
-end
-table.clear(wlRows)
-end
-function applyRowStyle(row, isOn)
-local base = row:GetAttribute("WLText") or ""
-if isOn then
-row.BackgroundColor3 = WL_ACCENT
-row.TextColor3 = Color3.fromRGB(255, 255, 255)
-row.Text = "✓ " .. base
-else
-row.BackgroundColor3 = WL_ROW
-row.TextColor3 = WL_GRAY
-row.Text = base
-end
-end
-function rebuildPlayerList()
-clearPlayerRows()
-local rows = {}
-for _, plr in ipairs(Players:GetPlayers()) do
-if plr ~= LocalPlayer then
-table.insert(rows, plr)
-end
-end
-table.sort(rows, function(a, b)
-return a.Name < b.Name
-end)
-if #rows == 0 then
-local empty = Instance.new("TextLabel")
-empty.BackgroundTransparency = 1
-empty.Font = Enum.Font.Gotham
-empty.TextSize = 12
-empty.TextColor3 = WL_GRAY
-empty.Text = "На сервере пока нет других игроков"
-empty.Size = UDim2.new(1, 0, 0, 26)
-empty.LayoutOrder = 1
-empty.Parent = wlScroll
-table.insert(wlRows, empty)
-return
-end
-for order, plr in ipairs(rows) do
-local row = Instance.new("TextButton")
-row.Name = "WL_" .. plr.Name
-row.AutoButtonColor = false
-row.Font = Enum.Font.Gotham
-row.TextSize = 13
-row.TextXAlignment = Enum.TextXAlignment.Left
-row.BackgroundColor3 = WL_ROW
-row.BorderSizePixel = 0
-row.Size = UDim2.new(1, 0, 0, 30)
-row.LayoutOrder = order
-row:SetAttribute("WLText", plr.DisplayName .. " (@" .. plr.Name .. ")")
-row.Parent = wlScroll
-table.insert(wlRows, row)
-wlCorner(row, 5)
-local pad = Instance.new("UIPadding")
-pad.PaddingLeft = UDim.new(0, 8)
-pad.Parent = row
-applyRowStyle(row, Whitelist[plr.Name] == true)
-row.Activated:Connect(function()
-if Whitelist[plr.Name] then
-Whitelist[plr.Name] = nil
-applyRowStyle(row, false)
-else
-Whitelist[plr.Name] = true
-applyRowStyle(row, true)
-end
-end)
-end
-end
-wlLabel("Или впиши ник вручную:", 4, WL_GRAY)
-wlInput = Instance.new("TextBox")
-wlInput.Name = "FustWhitelistInput"
-wlInput.Font = Enum.Font.Gotham
-wlInput.TextSize = 13
-wlInput.PlaceholderText = "Ник или DisplayName друга..."
-wlInput.PlaceholderColor3 = Color3.fromRGB(77, 77, 86)
-wlInput.Text = ""
-wlInput.TextColor3 = WL_TEXT
-wlInput.TextXAlignment = Enum.TextXAlignment.Left
-wlInput.ClearTextOnFocus = false
-wlInput.BackgroundColor3 = WL_BG
-wlInput.BorderSizePixel = 0
-wlInput.Size = UDim2.new(1, 0, 0, 32)
-wlInput.LayoutOrder = 5
-wlInput.Active = true
-wlInput.Selectable = true
-wlInput.Parent = wlPanel
-do
-wlCorner(wlInput)
-local pad = Instance.new("UIPadding")
-pad.PaddingLeft = UDim.new(0, 8)
-pad.Parent = wlInput
-end
-wlButtonRow = Instance.new("Frame")
-wlButtonRow.Name = "FustWhitelistButtons"
-wlButtonRow.BackgroundTransparency = 1
-wlButtonRow.Size = UDim2.new(1, 0, 0, 32)
-wlButtonRow.LayoutOrder = 6
-wlButtonRow.Parent = wlPanel
-do
-local layout = Instance.new("UIListLayout")
-layout.FillDirection = Enum.FillDirection.Horizontal
-layout.Padding = UDim.new(0, 6)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = wlButtonRow
-end
-function wlMakeButton(text, order, bg, fg)
-local b = Instance.new("TextButton")
-b.Font = Enum.Font.GothamBold
-b.TextSize = 13
-b.Text = text
-b.TextColor3 = fg
-b.BackgroundColor3 = bg
-b.BorderSizePixel = 0
-b.Size = UDim2.new(0.5, -3, 1, 0)
-b.LayoutOrder = order
-b.Parent = wlButtonRow
-wlCorner(b, 5)
-return b
-end
-wlAdd = wlMakeButton("+ Добавить", 1, WL_ACCENT, Color3.fromRGB(255, 255, 255))
-wlRemove = wlMakeButton("- Убрать", 2, WL_ROW, WL_TEXT)
-wlAdd.Activated:Connect(function()
-local name = resolveName(wlInput.Text)
-if name then
-Whitelist[name] = true
-rebuildPlayerList()
-end
-wlInput.Text = ""
-pcall(function()
-wlInput:ReleaseFocus()
-end)
-end)
-wlRemove.Activated:Connect(function()
-local name = resolveName(wlInput.Text)
-if name then
-Whitelist[name] = nil
-rebuildPlayerList()
-end
-wlInput.Text = ""
-pcall(function()
-wlInput:ReleaseFocus()
-end)
-end)
-Players.PlayerAdded:Connect(function()
-task.defer(rebuildPlayerList)
-end)
-Players.PlayerRemoving:Connect(function()
-task.defer(rebuildPlayerList)
-end)
-rebuildPlayerList()
-Aim = {
-Enabled = false,
-ShowFOV = false,
-FOV = 150, 
-Distance = 500, 
-Smooth = 4, 
-Prediction = 0.5, 
-Part = "Head", 
-Priority = "Прицел", 
-WallCheck = true,
-TeamCheck = false,
-Crosshair = false,
-TargetsPlayers = true, 
-TargetsNPC = false, 
-TargetsAnimals = false, 
-TargetsSleepers = false, 
-TargetsHelis = false, -- 0.39v2: вертолёты
-AutoPredict = false, 
-AutoPredictK = 1, 
-}
-Evil = {
-Enabled = false, 
-AutoPred = true, 
-Snipe = false, 
-K = 1, 
-}
-AutoAim = {
-Enabled = false, 
-Radius = 500, 
-}
--- 0.39v2: АВТО-СТРЕЛЬБА
-AutoFire = {
-Enabled = false,
-Delay = 0,         -- 0.39v3: задержка 0 = стрелять каждый кадр пока цель жива
-OnlyOnTarget = true, -- стрелять только когда есть цель в FOV
-UntilDead = true,  -- 0.39v3: стрелять пока цель не умрёт
-WallCheck = true,  -- 0.39v4: не стрелять если цель за стеной
-PCKey = nil,        -- не используется (всегда автомат)
-}
-AF_LastShot = 0
-AF_LastTargetPart = nil
-AA_EnemyNear = false 
-AA_NearestDist = nil 
-AIM_PARTS = { "Head", "Torso", "Legs", "Random" }
-AIM_PART_NAMES = { Head = "ГОЛОВА", Torso = "ТЕЛО", Legs = "НОГИ", Random = "РАНДОМ" }
--- 0.39v2: паттерны вертолётов для поиска в Workspace
-HELI_PATTERNS = {
-"вертолет", "вертолёт", "верталёт", "helicopter", "heli", "chopper",
-"боевой вертолет", "combat heli", "attack heli", "military heli",
-"transport heli", "грузовой вертолет", "mi-8", "mi-24", "ka-50", "ka-52",
-"uh-60", "ah-64", "ah-1", "bell", "robinson", "apache", "hind",
-}
-HELI_TAGS = { "FustHeli", "FustVehicle", "FustHelicopter", "Vehicle", "Heli" }
-HELI_FOLDER_NAMES = { "Helicopters", "Vehicles", "Heli", "Helis", "Авиация", "Транспорт" }
-trackedHelis = {} -- кэш найденных вертолётов
-heliScanAt = 0
-function heliScanWorkspace()
-local now = os.clock()
-if now - heliScanAt < 2.0 then return end -- раз в 2с
-heliScanAt = now
-local found = {}
-pcall(function()
--- 1. По тегам CollectionService
-for _, tag in ipairs(HELI_TAGS) do
-local ok, items = pcall(CollectionService.GetTagged, CollectionService, tag)
-if ok and items then
-for _, inst in ipairs(items) do
-if inst:IsA("Model") and inst.Parent then
-table.insert(found, inst)
-end
-end
-end
-end
--- 2. Поиск по папкам
-for _, folder in ipairs(HELI_FOLDER_NAMES) do
-local okF, f = pcall(function()
-return Workspace:FindFirstChild(folder, true)
-end)
-if okF and f then
-for _, d in ipairs(f:GetDescendants()) do
-if d:IsA("Model") then
-table.insert(found, d)
-end
-end
-end
-end
--- 3. Поиск по имени в верхнем уровне Workspace
-for _, d in ipairs(Workspace:GetChildren()) do
-if d:IsA("Model") then
-local okN, name = pcall(function() return string.lower(tostring(d.Name)) end)
-if okN then
-for _, pat in ipairs(HELI_PATTERNS) do
-if string.find(name, pat, 1, true) then
-table.insert(found, d)
-break
-end
-end
-end
-end
-end
-end)
--- дедуп
-local seen = {}
-local unique = {}
-for _, h in ipairs(found) do
-if not seen[h] then
-seen[h] = true
-table.insert(unique, h)
-end
-end
-trackedHelis = unique
-end
-function heliFindAimPart(heli)
--- ищем BodyPart / Seat / Main rotor для прицеливания
-local bestPart = nil
-local bestScore = -math.huge
-pcall(function()
--- приоритет: PilotSeat, DriverSeat, Main, Body, HeliBody
-local priority = { "PilotSeat", "DriverSeat", "Main", "Body", "HeliBody", "Cabin", "Tail", "Rotor", "MainRotor" }
-for _, p in ipairs(heli:GetDescendants()) do
-if p:IsA("BasePart") then
-local name = string.lower(tostring(p.Name))
-local score = 0
-for i, pn in ipairs(priority) do
-if string.find(name, string.lower(pn), 1, true) then
-score = 100 - i
-break
-end
-end
-if score == 0 then score = 10 end -- любой BasePart подходит
-if score > bestScore then
-bestScore = score
-bestPart = p
-end
-end
-end
-end)
-return bestPart
-end
-AimHotkeyObj = nil 
-AimHotkeyBusy = false 
-UIRegistry.AimEnabled = AimSection:Toggle({
-Name = "Аимбот (камера-лок)",
-Flag = "AimEnabled",
-Default = false,
-Callback = function(state)
-Aim.Enabled = state
-if AimHotkeyObj then
-AimHotkeyObj.Toggled = state
-end
-journal("АИМБОТ " .. (state and "ВКЛ" or "ВЫКЛ"))
-end
-})
-hasKeyboard = false
-pcall(function()
-hasKeyboard = (UserInputService.KeyboardEnabled == true)
-end)
-if hasKeyboard then
-AimHotkeyBusy = true
-AimHotkeyObj = UIRegistry.AimEnabled:Keybind({
-Flag = "AimHotkey",
-Default = Enum.KeyCode.RightAlt,
-Mode = "Toggle",
-Callback = function(state)
-if AimHotkeyBusy then return end
-if UIRegistry.AimEnabled and UIRegistry.AimEnabled.Set then
-UIRegistry.AimEnabled:Set(state)
-end
-end
-})
-AimHotkeyBusy = false
-UIRegistry.AimHotkey = AimHotkeyObj
-end
-UIRegistry.AimShowFOV = AimSection:Toggle({
-Name = "FOV круг (зеленеет при захвате)",
-Flag = "AimShowFOV",
-Default = false,
-Callback = function(state)
-Aim.ShowFOV = state
-end
-})
-UIRegistry.AimWallCheck = AimSection:Toggle({
-Name = "Проверка стен",
-Flag = "AimWallCheck",
-Default = true,
-Callback = function(state)
-Aim.WallCheck = state
-end
-})
-UIRegistry.AimTeamCheck = AimSection:Toggle({
-Name = "Не целить тимейтов (одна команда)",
-Flag = "AimTeamCheck",
-Default = false,
-Callback = function(state)
-Aim.TeamCheck = state
-end
-})
-UIRegistry.AimCrosshair = AimSection:Toggle({
-Name = "Прицел по центру (CS2-стиль)",
-Flag = "AimCrosshair",
-Default = false,
-Callback = function(state)
-Aim.Crosshair = state
-end
-})
--- 0.39: настройки прицела CS2
-UIRegistry.CHLength = AimSection:Slider({
-Name = "Прицел: длина лучей",
-Flag = "CHLength",
-Default = 7,
-Min = 1,
-Max = 20,
-Decimals = 1,
-Callback = function(v) CH.Length = v end
-})
-UIRegistry.CHThickness = AimSection:Slider({
-Name = "Прицел: толщина",
-Flag = "CHThickness",
-Default = 2,
-Min = 1,
-Max = 5,
-Decimals = 0.5,
-Callback = function(v) CH.Thickness = v end
-})
-UIRegistry.CHGap = AimSection:Slider({
-Name = "Прицел: зазор от центра",
-Flag = "CHGap",
-Default = 5,
-Min = 0,
-Max = 15,
-Decimals = 0.5,
-Callback = function(v) CH.Gap = v end
-})
-UIRegistry.CHDot = AimSection:Toggle({
-Name = "Прицел: точка в центре",
-Flag = "CHDot",
-Default = false,
-Callback = function(state) CH.Dot = state end
-})
-UIRegistry.CHOutline = AimSection:Toggle({
-Name = "Прицел: обводка (чёрная)",
-Flag = "CHOutline",
-Default = true,
-Callback = function(state) CH.Outline = state end
-})
-UIRegistry.CHColor = AimSection:Label("Прицел: цвет"):Colorpicker({
-Name = "Прицел: цвет",
-Flag = "CHColor",
-Default = Color3.fromRGB(255, 30, 30),
-Callback = function(c) CH.Color = c end
-})
--- 0.39v2: расширенные настройки CS2
-UIRegistry.CHTStyle = AimSection:Toggle({
-Name = "Прицел: T-стиль (без верха, как AWP)",
-Flag = "CHTStyle",
-Default = false,
-Callback = function(state) CH.TStyle = state end
-})
-UIRegistry.CHDotSize = AimSection:Slider({
-Name = "Прицел: размер точки",
-Flag = "CHDotSize",
-Default = 1,
-Min = 1,
-Max = 5,
-Decimals = 0.5,
-Callback = function(v) CH.DotSize = v end
-})
-UIRegistry.CHOutlineThickness = AimSection:Slider({
-Name = "Прицел: толщина обводки",
-Flag = "CHOutlineThickness",
-Default = 1,
-Min = 1,
-Max = 3,
-Decimals = 0.5,
-Callback = function(v) CH.OutlineThickness = v end
-})
-UIRegistry.CHAlpha = AimSection:Slider({
-Name = "Прицел: прозрачность (0-1)",
-Flag = "CHAlpha",
-Default = 1,
-Min = 0.1,
-Max = 1,
-Decimals = 0.05,
-Callback = function(v) CH.Alpha = v end
-})
-UIRegistry.CHRecoilFollow = AimSection:Toggle({
-Name = "Прицел: следует за отдачей (CS recoil)",
-Flag = "CHRecoilFollow",
-Default = false,
-Callback = function(state) CH.RecoilFollow = state end
-})
-UIRegistry.AimFOV = AimSection:Slider({
-Name = "FOV радиус",
-Flag = "AimFOV",
-Default = 150,
-Min = 50,
-Max = 400,
-Decimals = 5,
-Suffix = "px",
-Callback = function(Value)
-Aim.FOV = Value
-end
-})
-UIRegistry.AimDistance = AimSection:Slider({
-Name = "Дистанция аима",
-Flag = "AimDistance",
+pad.PaddingTop = UDim.new(0,

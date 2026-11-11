@@ -1124,6 +1124,14 @@ local function wrapElement(nlObj, nlSec, kind, data)
         function w:Fire()
                 pcall(function() if w.Obj and w.Obj.Fire then w.Obj:Fire() end end)
         end
+        -- H5-FIX: метод :Get() для keybind (сохранение в конфиг)
+        function w:Get()
+                if w.Obj and w.Obj.Get then
+                        local ok, k, m = pcall(function() return w.Obj:Get() end)
+                        if ok then return k, m end
+                end
+                return w.Value, w.Mode or "Toggle"
+        end
 
         -- прикреплённые элементы (как в старой библиотеке: Toggle:Colorpicker() и т.п.)
         function w:Colorpicker(d)
@@ -1237,7 +1245,7 @@ makeKeybind = function(sec, data)
                 text = data.Name or data.Title or "Keybind",
                 default = normKey(data.Default or Enum.KeyCode.Unknown),
                 onkeychanged = function(keyName)
-                        key = normKey(keyName)
+                        local key = normKey(keyName) -- H9-FIX: был global
                         if w then
                                 w.Key = key
                                 pushFlag(w, data.Flag, { Key = tostring(key), Mode = data.Mode or "Toggle" })
@@ -1501,126 +1509,4 @@ function Library:Window(Data)
         Library.NLWindow = nlWin
         local win = newWindow(nlWin)
 
-        -- хоткей меню (RightControl по умолчанию; PETUH_MENU_KEY обновляется
-        -- через OnKeyChanged в настройках)
-        pcall(function()
-                local UIS = game:GetService("UserInputService")
-                Library:Connect(UIS.InputBegan, function(input, gp)
-                        if gp then return end
-                        local key = getgenv().PETUH_MENU_KEY or Enum.KeyCode.RightControl
-                        if input.KeyCode == key then
-                                win:SetOpen(not win:IsOpenLive())
-                        end
-                end)
-        end)
-
-        -- мобильная кнопка меню (иконка петуха, тап = открыть/закрыть)
-        pcall(function()
-                local UIS = game:GetService("UserInputService")
-                if UIS.TouchEnabled == true then
-                        local icon = PETUH_ICON_ASSET or "rbxassetid://134242818164054"
-                        local mbtn = Instance.new("ImageButton")
-                        mbtn.Name = "FUST_MobileMenu"
-                        mbtn.Image = icon
-                        mbtn.ScaleType = Enum.ScaleType.Fit
-                        mbtn.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
-                        mbtn.BackgroundTransparency = 0.25
-                        mbtn.BorderSizePixel = 0
-                        mbtn.Size = UDim2.fromOffset(44, 44)
-                        mbtn.Position = UDim2.new(0, 10, 0.5, -22)
-                        mbtn.Active = true
-                        mbtn.AutoButtonColor = false
-                        mbtn.Parent = Library.Holder.Instance
-                        local mc = Instance.new("UICorner")
-                        mc.CornerRadius = UDim.new(0, 8)
-                        mc.Parent = mbtn
-                        local ms = Instance.new("UIStroke")
-                        ms.Color = ACCENT_RED
-                        ms.Thickness = 1.5
-                        ms.Transparency = 0.3
-                        ms.Parent = mbtn
-                        -- drag пальцем + тап
-                        local mdrag, mstart, mpos, mmoved
-                        mbtn.InputBegan:Connect(function(input)
-                                if input.UserInputType == Enum.UserInputType.MouseButton1
-                                or input.UserInputType == Enum.UserInputType.Touch then
-                                        mdrag = true
-                                        mmoved = false
-                                        mstart = input.Position
-                                        mpos = mbtn.Position
-                                        input.Changed:Connect(function()
-                                                if input.UserInputState == Enum.UserInputState.End then mdrag = false end
-                                        end)
-                                end
-                        end)
-                        mbtn.InputChanged:Connect(function(input)
-                                if input.UserInputType == Enum.UserInputType.Touch
-                                or input.UserInputType == Enum.UserInputType.MouseMovement then
-                                        if mdrag then
-                                                local d = input.Position - mstart
-                                                if d.Magnitude > 8 then mmoved = true end
-                                                mbtn.Position = UDim2.new(mpos.X.Scale, mpos.X.Offset + d.X, mpos.Y.Scale, mpos.Y.Offset + d.Y)
-                                        end
-                                end
-                        end)
-                        mbtn.MouseButton1Click:Connect(function()
-                                if not mmoved then
-                                        win:SetOpen(not win:IsOpenLive())
-                                end
-                        end)
-                        -- отдаём в формате, который ждёт основной код:
-                        -- Window.LGWindow.MobileButton.Root
-                        nlWin.MobileButton = { Root = mbtn }
-                end
-        end)
-
-        return win
-end
-
--- ================= настройки =================
-function Library:CreateSettingsPage(Win)
-        task.delay(1, function()
-                local ok, err = pcall(function()
-                        local SettingsPage = Win:Page({ Name = "Settings", Icon = "rbxassetid://80758916183665" })
-
-                        -- кнопка-петух
-                        local MenuSection = SettingsPage:Section({ Name = "Кнопка меню", Tab = "Меню" })
-                        MenuSection:Toggle({
-                                Name = "Скрыть кнопку-петух (только хоткей)",
-                                Flag = "PetuhBtnHidden",
-                                Default = false,
-                                Callback = function(state)
-                                        if petuhSetBtnHidden then petuhSetBtnHidden(state) end
-                                end,
-                        })
-                        MenuSection:Label("Клавиша меню (назначить)"):Keybind({
-                                Name = "Клавиша открытия/закрытия меню",
-                                Flag = "PetuhMenuKey",
-                                Default = Enum.KeyCode.RightControl,
-                                Mode = "Toggle",
-                                Callback = function() end,
-                                OnKeyChanged = function(key)
-                                        pcall(function()
-                                                PETUH_MENU_KEY = key
-                                                Library.LG.ToggleKey = key
-                                                journal("МЕНЮ: клавиша = " .. tostring(key))
-                                        end)
-                                end,
-                        })
-                        pcall(function()
-                                if type(delfile) == "function" then pcall(delfile, "FUST_loadScreen_ON.txt") end
-                        end)
-                        MenuSection:Label("Кнопку можно перетащить в любое место.")
-
-                        -- окно
-                        local WinSection = SettingsPage:Section({ Name = "Окно", Tab = "Оформление" })
-                        WinSection:Button({
-                                Name = "Выгрузить скрипт (Unload)",
-                                Callback = function()
-                                        Library:Unload()
-                                end,
-                        })
-
-                        -- конфиги
-                        local ConfigsSection = SettingsPage:Section({ Name = "Configs", Tab = "Конфиги" })
-                        local ConfigName, ConfigSelected
+        -- хоткей меню (RightControl п
