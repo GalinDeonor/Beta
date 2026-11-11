@@ -1510,4 +1510,5 @@ function Library:Window(Data)
         Library.NLWindow = nlWin
         local win = newWindow(nlWin)
 
-        -- хоткей меню (RightControl по умолчанию; PETUH_MENU_KEY обновл�
+        -- хоткей меню (RightControl по умолчанию; PETUH_MENU_KEY обновляется
+        -- через OnKeyChanged в нас�

@@ -1,7 +1,4 @@
-d = Instance.new("UIPadding")
-pad.PaddingTop = UDim.new(0, 8)
-pad.PaddingBottom = UDim.new(0, 8)
-pad.PaddingLeft = UDim.new(0, 8)
+ft = UDim.new(0, 8)
 pad.PaddingRight = UDim.new(0, 8)
 pad.Parent = wlPanel
 local layout = Instance.new("UIListLayout")
@@ -3129,4 +3126,6 @@ velEMALastClean = 0
 -- скорость цели относительно камеры + clamp по дальности + множитель.
 -- Если цель БЫСТРО движется перпендикулярно — упреждение больше.
 -- Если цель идёт НА нас или ОТ нас — упреждение меньше (не нужно).
-function auto
+function autoLead(dist, targetVel, camLook)
+local base = math.clamp(dist / 900, 0.05, 1.2) * math.clamp(Aim.AutoPredictK or 1, 0.1, 5)
+-- если передана скорост

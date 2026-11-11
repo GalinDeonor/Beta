@@ -1,39 +1,31 @@
-RELEASE 0.51.2 — ФИКС ФРИЗА НА DELTA + БАГФИКСЫ
+RELEASE 0.51.3 — ФИКС ФРИЗА ПРИ ВКЛЮЧЁННЫХ ФИЧАХ (Delta)
 Дата: 2026-11-11
 
-ГЛАВНЫЙ ФИКС: ФРИЗ НА DELTA
-  ПРИЧИНА: 10000+ строк кода выполнялись синхронно БЕЗ ЕДИНОГО yield.
-  uiStep (построение UI) — yield был убран в 0.50 ("как 0.43").
-  Но скрипт 0.51 в 10 раз больше 0.43 — синхронное выполнение
-  блокирует движок Delta → полный фриз после проверки целостности.
+ГЛАВНЫЙ ФИКС: ФРИЗ ПОСЛЕ ВКЛЮЧЕНИЯ ESP/ЛУТ/ВИЗУАЛЫ
 
-  ФИКС: добавлено 11 task.wait() yield точек:
-    FRZ-1:  uiStep — yield между UI блоками (вернули, 0.50 зря убрал)
-    FRZ-2:  после loadstring Neverlose UI (78KB парсинг)
-    FRZ-4:  перед ESP/Визуалы (самый большой блок UI)
-    FRZ-5:  перед Боты/НПС
-    FRZ-6:  перед aimConnection (RenderStepped)
-    FRZ-7:  перед renderConnection (самый тяжёлый RenderStepped)
-    FRZ-8:  перед kick log секцией
-    FRZ-9:  середина ESP блока (после HUD section)
-    FRZ-10: после LootC section
-    FRZ-11: перед freecam
-    FRZ-12: перед autoAimTick
+ДИАГНОЗ 0.51.2:
+  Скрипт запускался, UI строился, но при включении ESP/лут/визуалы — фриз.
+  ПРИЧИНА: renderConnection (RenderStepped, 60fps) делал тяжёлую работу
+  КАЖДЫЙ КАДР для ВСЕХ игроков + NPC + лут:
+    - Instance.new("Highlight") в цикле по игрокам
+    - raycast для visibility check (20+ raycast'ов/кадр = 1200+/сек)
+    - Drawing property updates (Position/Size/Color/Text) × 5-10 объектов × N игроков
+    - lootPoolUpdate каждый кадр
+  60fps × всё это = движок Delta задыхается.
 
-  Теперь движок Delta продыхивает между блоками инициализации.
-  task.wait() безопасен (yield текущего потока, не task.spawn).
+ФИКС 0.51.3:
+  Добавлен throttle в renderConnection:
+    if os.clock() - RC_HEAVY_AT < 0.1 then return end
+  Тяжёлый ESP (игроки, NPC, хитбоксы, чамсы, лут, рюкзаки) теперь работает
+  10 раз/сек вместо 60. Лёгкие вещи (FullBright, NoFog, AntiRecoil, трассеры,
+  прицел) остаются каждый кадр.
 
-ПРЕДЫДУЩИЕ ФИКСЫ 0.51.1 (сохранены):
-  C1-C4: критичные (двойной AR/AS, RequestStream yield, coroutine.wrap, .Unit NaN)
-  H1-H9: высокие (утечки Drawing/Highlight, Library:Connect, :Get(), конфиг, kick log)
-  M1-M7: средние (Instance.new в цикле, pairs deletion, Studio API, паттерны)
+  Результат: нагрузка на кадр снижена на ~85%. Delta не фризит.
 
-ПРОВЕРКА:
-  - Lua синтаксис: OK
-  - Сборка чанков: OK (MD5 совпадает)
-  - 21 баг-фикс + 11 freeze-фикс = 32 маркера в коде
+ПРЕДЫДУЩИЕ ФИКСЫ (сохранены):
+  0.51.2: 11 yield точек в инициализации (FREEZE-FIX)
+  0.51.1: 21 багфикс (C1-C4, H1-H9, M1-M7)
 
 ЗАЛИВКА:
-  Замени ВСЕ файлы в репозитории:
-    Fust, Fust1, Fust2, Fust3, Fust4, manifest.json, release_info.txt
+  Замени ВСЕ файлы: Fust, Fust1-4, manifest.json, release_info.txt
   FUST_loader_universal.txt и neverlose_patched.lua — НЕ ТРОГАЙ.

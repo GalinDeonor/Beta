@@ -1,5 +1,4 @@
-�ется
-        -- через OnKeyChanged в настройках)
+�ройках)
         pcall(function()
                 local UIS = game:GetService("UserInputService")
                 Library:Connect(UIS.InputBegan, function(input, gp)
@@ -2517,4 +2516,7 @@ stroke.Color = WL_ACCENT
 stroke.Transparency = 0.55
 stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 stroke.Parent = wlPanel
-local pa
+local pad = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 8)
+pad.PaddingBottom = UDim.new(0, 8)
+pad.PaddingLe

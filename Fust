@@ -8887,7 +8887,11 @@ AA_EnemyNear and 1 or 0
 ))
 end)
 end
-local hitboxAppliedCount = 0 
+-- FREEZE-FIX2: throttle тяжёлого ESP — 10 раз/сек, не каждый кадр (60fps = фриз Delta)
+local _rcNow = os.clock()
+if _rcNow - (RC_HEAVY_AT or 0) < 0.1 then return end
+RC_HEAVY_AT = _rcNow
+local hitboxAppliedCount = 0
 for _, player in ipairs(Players:GetPlayers()) do
 if player ~= LocalPlayer then
 local char = player.Character
