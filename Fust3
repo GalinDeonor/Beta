@@ -1,4 +1,5 @@
- 8)
+d = Instance.new("UIPadding")
+pad.PaddingTop = UDim.new(0, 8)
 pad.PaddingBottom = UDim.new(0, 8)
 pad.PaddingLeft = UDim.new(0, 8)
 pad.PaddingRight = UDim.new(0, 8)
@@ -2331,6 +2332,7 @@ UIRegistry.FreeCamEnabled:Set(state)
 end)
 end
 end
+task.wait() -- FREEZE-FIX: перед freecam
 function freecamEnable()
 if FreeCam.Enabled then
 return
@@ -3127,3 +3129,4 @@ velEMALastClean = 0
 -- скорость цели относительно камеры + clamp по дальности + множитель.
 -- Если цель БЫСТРО движется перпендикулярно — упреждение больше.
 -- Если цель идёт НА нас или ОТ нас — упреждение меньше (не нужно).
+function auto

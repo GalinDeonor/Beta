@@ -1,5 +1,4 @@
-
-function autoLead(dist, targetVel, camLook)
+Lead(dist, targetVel, camLook)
 local base = math.clamp(dist / 900, 0.05, 1.2) * math.clamp(Aim.AutoPredictK or 1, 0.1, 5)
 -- если передана скорость цели и направление камеры — корректируем
 if targetVel and camLook then
@@ -192,6 +191,7 @@ end
 if getgenv().FUST_AimCleanup then
 pcall(getgenv().FUST_AimCleanup)
 end
+task.wait() -- FREEZE-FIX: перед aimConnection
 aimConnection = nil
 aimConnection = RunService.RenderStepped:Connect(function()
 if getgenv().FUST_SESSION ~= FUST_SESSION then
@@ -344,6 +344,7 @@ pcall(function() if chOutline and chOutline[_i] then chOutline[_i]:Remove() end 
 end
 chOutline = nil
 end
+task.wait() -- FREEZE-FIX: перед autoAimTick
 function autoAimTick()
 if not AutoAim.Enabled then
 AA_EnemyNear = false
@@ -1644,6 +1645,7 @@ espVisCache[char] = { state = state, at = now }
 espVisCacheCount = espVisCacheCount + 1
 return state
 end
+task.wait() -- FREEZE-FIX: перед renderConnection
 renderConnection = nil
 renderConnection = RunService.RenderStepped:Connect(function()
 if getgenv().FUST_SESSION ~= FUST_SESSION then
@@ -2363,7 +2365,7 @@ getgenv().FUST_DecorBackup = nil
 print("[FUST] Скрипт полностью деактивирован. Заново execute — чтобы включить снова.")
 end
 Library:Connect(Players.PlayerRemoving, function(player) removeEspDrawings(player) hitboxOriginals[player] = nil end) -- H4b-FIX
--- 0.39v16: yield убран — в v13 без него работало
+task.wait() -- FREEZE-FIX: перед kick log
 
 -- ============================================================================
 -- FUST KICK/BAN LOGGER 0.38 — лог киков/банов с persist между запусками

@@ -922,6 +922,7 @@ MathClamp = math.clamp
 
 local Library = {}
 Library.LG = LG
+task.wait() -- FREEZE-FIX: продых после loadstring 78KB
 Library.Version = "0.50-Neverlose"
 Library.MenuKeybind = "RightControl"
 Library.Flags = {}
@@ -1509,4 +1510,4 @@ function Library:Window(Data)
         Library.NLWindow = nlWin
         local win = newWindow(nlWin)
 
-        -- хоткей меню (RightControl п
+        -- хоткей меню (RightControl по умолчанию; PETUH_MENU_KEY обновл�

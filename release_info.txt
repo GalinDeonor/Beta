@@ -1,52 +1,39 @@
-RELEASE 0.51.1 — БАГФИКСЫ (21 баг)
+RELEASE 0.51.2 — ФИКС ФРИЗА НА DELTA + БАГФИКСЫ
 Дата: 2026-11-11
-Основано на: 0.51 (лоадер v5)
 
-ДИФФ ОТ 0.51:
-  Fust — ИЗМЕНЁН (351250 → 353546 байт, md5 7cf8b9fd → 586975ba)
-  Fust1..4 — пере разбиты (новые размеры в manifest.json)
-  manifest.json — ver 0.51.1, новый md5
-  FUST_loader_universal.txt — НЕ ИЗМЕНЁН (лоадер v5 совместим)
-  neverlose_patched.lua — НЕ ИЗМЕНЁН
+ГЛАВНЫЙ ФИКС: ФРИЗ НА DELTA
+  ПРИЧИНА: 10000+ строк кода выполнялись синхронно БЕЗ ЕДИНОГО yield.
+  uiStep (построение UI) — yield был убран в 0.50 ("как 0.43").
+  Но скрипт 0.51 в 10 раз больше 0.43 — синхронное выполнение
+  блокирует движок Delta → полный фриз после проверки целостности.
 
-КРИТИЧНЫЕ ФИКСЫ (4):
-  C1. Убран дублирующий вызов AR_DriftPass()/AS_Pass() в renderConnection.
-      Раньше анти-отдача применялась ДВАЖДЫ за кадр → дёрганье камеры.
-  C2. RequestStreamAroundAsync обёрнут в task.spawn — больше не yield'ит
-      в RenderStepped. Фрикам корректно прогружает карту.
-  C3. coroutine.wrap(pcall) заменён на task.spawn с warn() при ошибке +
-      WaitForChild("Terrain", 10) вместо repeat/until (убран висячий цикл).
-  C4. .Unit на zero-векторе в aimConnection — добавлен magnitude check.
-      Раньше NaN → краш connection → аимбот отключался навсегда.
+  ФИКС: добавлено 11 task.wait() yield точек:
+    FRZ-1:  uiStep — yield между UI блоками (вернули, 0.50 зря убрал)
+    FRZ-2:  после loadstring Neverlose UI (78KB парсинг)
+    FRZ-4:  перед ESP/Визуалы (самый большой блок UI)
+    FRZ-5:  перед Боты/НПС
+    FRZ-6:  перед aimConnection (RenderStepped)
+    FRZ-7:  перед renderConnection (самый тяжёлый RenderStepped)
+    FRZ-8:  перед kick log секцией
+    FRZ-9:  середина ESP блока (после HUD section)
+    FRZ-10: после LootC section
+    FRZ-11: перед freecam
+    FRZ-12: перед autoAimTick
 
-ВЫСОКИЙ ПРИОРИТЕТ (9):
-  H1. chDot + chOutline[1..8] теперь очищаются в FUST_AimCleanup (была утечка 9 Drawing).
-  H2. furnitureChamsCleanup() вызывается в FUST_RenderCleanup (была утечка Highlight пула).
-  H3. XRay + TextureDegradation восстанавливаются при выгрузке (прозрачность стен больше не остаётся).
-  H4. 4 прямых :Connect заменены на Library:Connect → отключаются при unload (нет дубликатов при reload).
-  H5. Добавлен метод :Get() в wrapElement → AimHotkey сохраняется в конфиг.
-  H6. task.wait(0.05) в freecamDisable заменён на task.delay → не yield'ит в RenderStepped.
-  H7. VisCheck/VisHitbox добавлены в saveConfig+loadConfig → настройки ESP видимости сохраняются.
-  H8. Лог кика: разделены immediate/delayed флаги → баннер CoreGui теперь логируется (не теряется).
-  H9. `key = normKey(...)` → `local key` → убрано загрязнение _G.
+  Теперь движок Delta продыхивает между блоками инициализации.
+  task.wait() безопасен (yield текущего потока, не task.spawn).
 
-СРЕДНИЙ ПРИОРИТЕТ (8):
-  M1. Instance.new("Folder") вынесен из цикла XRay (было 2000 orphaned Instance).
-  M2. Удаление ключей во время pairs() исправлено (collect-then-remove).
-  M3. (отложено — bpDrawings пул требует рефакторинга)
-  M4. task.delay(1) → task.delay(0.1) в CreateSettingsPage (вкладка Settings появляется быстрее).
-  M5. settings().Studio.GraphicsQuality убран (Studio-only, не работает в Runtime).
-  M6. AimHotkeyBusy → local (убрано загрязнение _G).
-  M7. Паттерн владельца рюкзака: `s` (литерал) → `%s` (whitespace) → корректный разбор.
-  M8. VisCheck/VisHitbox в cfg.ESP (объединено с H7).
+ПРЕДЫДУЩИЕ ФИКСЫ 0.51.1 (сохранены):
+  C1-C4: критичные (двойной AR/AS, RequestStream yield, coroutine.wrap, .Unit NaN)
+  H1-H9: высокие (утечки Drawing/Highlight, Library:Connect, :Get(), конфиг, kick log)
+  M1-M7: средние (Instance.new в цикле, pairs deletion, Studio API, паттерны)
 
 ПРОВЕРКА:
-  - Lua синтаксис: OK (fengari Lua 5.3 + Luau continue — компилируется)
-  - Сборка чанков: Fust1+Fust2+Fust3+Fust4 = Fust (353546 байт) ✓
-  - MD5: 586975ba71eb6359052b703fd82b841b ✓
-  - 24 FIX-маркера в коде: все присутствуют ✓
+  - Lua синтаксис: OK
+  - Сборка чанков: OK (MD5 совпадает)
+  - 21 баг-фикс + 11 freeze-фикс = 32 маркера в коде
 
-ЗАЛИВКА НА GITHUB:
-  Замени ВСЕ файлы в репозитории GalinDeonor/Beta:
+ЗАЛИВКА:
+  Замени ВСЕ файлы в репозитории:
     Fust, Fust1, Fust2, Fust3, Fust4, manifest.json, release_info.txt
-  FUST_loader_universal.txt и neverlose_patched.lua — НЕ ТРОГАЙ (те же).
+  FUST_loader_universal.txt и neverlose_patched.lua — НЕ ТРОГАЙ.

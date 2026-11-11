@@ -922,6 +922,7 @@ MathClamp = math.clamp
 
 local Library = {}
 Library.LG = LG
+task.wait() -- FREEZE-FIX: продых после loadstring 78KB
 Library.Version = "0.50-Neverlose"
 Library.MenuKeybind = "RightControl"
 Library.Flags = {}
@@ -1937,7 +1938,7 @@ journal("ОШИБКА UI '" .. stepName .. "': " .. tostring(err))
 end)
 table.insert(UI_ERRORS, stepName .. ": " .. tostring(err))
 end
--- 0.50: yield убран — загрузка снова синхронная (как 0.43)
+task.wait() -- FREEZE-FIX: yield между UI блоками (вернули — 0.50 зря убрал)
 end
 ICON_SETTINGS = "rbxassetid://80758916183665"
 ICON_COMBAT = "rbxassetid://87563802520297"
@@ -2065,6 +2066,7 @@ AimSection = AimPage:Section({ Name = "Аимбот", Tab = "Аимбот", Side
 HitboxSection = AimPage:Section({ Name = "Хитбокс", Tab = "Аимбот", Side = 2 })
 TargetSection = AimPage:Section({ Name = "Цель", Tab = "Аимбот", Side = 2 })
 end)
+task.wait() -- FREEZE-FIX: перед ESP/Визуалы
 uiStep("Вкладки ESP/Визуалы/Лут", function()
 Window:Group("Визуал")
 EspPage = Window:Page({ Name = "ESP", Icon = ICON_VISUALS })
@@ -2698,6 +2700,7 @@ end
 })
 EspSection:Label("Видимость смотрит ТЕЛО (хитбоксы игнор). Жёлтый = тело за стеной, но хитбокс торчит. Серый + «СТЕНА» = не подстрелить.")
 HudSection = EspPage:Section({ Name = "HUD на экране", Tab = "ESP", Side = 2 })
+task.wait() -- FREEZE-FIX: середина ESP блока
 hudGui = nil 
 hudFrame = nil 
 hudStroke = nil
@@ -3180,6 +3183,7 @@ end
 end
 })
 LootCSection = EspPage:Section({ Name = "Лут (бочки и ящики)", Tab = "Лут", Side = 2 })
+task.wait() -- FREEZE-FIX: после LootC
 UIRegistry.LootCEnabled = LootCSection:Toggle({
 Name = "ESP лута (бочки/ящики/элитные/военные)",
 Flag = "LootCEnabled",
@@ -3243,6 +3247,7 @@ end
 })
 LootCSection:Label("Чамсы — это пул из 12 Highlight'ов: подсвечиваются 12 БЛИЖАЙШИХ моделей. Дальний лут не подсвечивается — это плата за FPS на телефоне.")
 -- 0.39v16: yield убран — в v13 без него работало
+task.wait() -- FREEZE-FIX: перед Боты/НПС
 uiStep("Вкладка Боты и НПС", function()
 BotPage = Window:Page({ Name = "Боты и НПС", Icon = ICON_VISUALS })
 BotEspSection = BotPage:Section({ Name = "ESP ботов", Tab = "Боты", Side = 1 })
@@ -6358,6 +6363,7 @@ UIRegistry.FreeCamEnabled:Set(state)
 end)
 end
 end
+task.wait() -- FREEZE-FIX: перед freecam
 function freecamEnable()
 if FreeCam.Enabled then
 return
@@ -7347,6 +7353,7 @@ end
 if getgenv().FUST_AimCleanup then
 pcall(getgenv().FUST_AimCleanup)
 end
+task.wait() -- FREEZE-FIX: перед aimConnection
 aimConnection = nil
 aimConnection = RunService.RenderStepped:Connect(function()
 if getgenv().FUST_SESSION ~= FUST_SESSION then
@@ -7499,6 +7506,7 @@ pcall(function() if chOutline and chOutline[_i] then chOutline[_i]:Remove() end 
 end
 chOutline = nil
 end
+task.wait() -- FREEZE-FIX: перед autoAimTick
 function autoAimTick()
 if not AutoAim.Enabled then
 AA_EnemyNear = false
@@ -8799,6 +8807,7 @@ espVisCache[char] = { state = state, at = now }
 espVisCacheCount = espVisCacheCount + 1
 return state
 end
+task.wait() -- FREEZE-FIX: перед renderConnection
 renderConnection = nil
 renderConnection = RunService.RenderStepped:Connect(function()
 if getgenv().FUST_SESSION ~= FUST_SESSION then
@@ -9518,7 +9527,7 @@ getgenv().FUST_DecorBackup = nil
 print("[FUST] Скрипт полностью деактивирован. Заново execute — чтобы включить снова.")
 end
 Library:Connect(Players.PlayerRemoving, function(player) removeEspDrawings(player) hitboxOriginals[player] = nil end) -- H4b-FIX
--- 0.39v16: yield убран — в v13 без него работало
+task.wait() -- FREEZE-FIX: перед kick log
 
 -- ============================================================================
 -- FUST KICK/BAN LOGGER 0.38 — лог киков/банов с persist между запусками
